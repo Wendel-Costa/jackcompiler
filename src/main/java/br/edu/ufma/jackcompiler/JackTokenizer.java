@@ -62,6 +62,10 @@ public final class JackTokenizer {
             return integerConstant();
         }
 
+        if (character == '"') {
+            return stringConstant();
+        }
+
         return symbol();
     }
 
@@ -151,6 +155,30 @@ public final class JackTokenizer {
         }
 
         return new Token(TokenType.NUMBER, lexeme, startLine);
+    }
+
+    private Token stringConstant() {
+        int startLine = line;
+
+        advance();
+
+        int start = current;
+
+        while (!isAtEnd() && peek() != '"') {
+            advance();
+        }
+
+        if (isAtEnd()) {
+            throw new IllegalArgumentException(
+                    "Constante string não terminada na linha "
+                            + startLine);
+        }
+
+        String lexeme = input.substring(start, current);
+
+        advance();
+
+        return new Token(TokenType.STRING, lexeme, startLine);
     }
 
     private boolean isDigit(char character) {

@@ -271,4 +271,64 @@ class JackTokenizerTest {
                 IllegalArgumentException.class,
                 tokenizer::nextToken);
     }
+
+    @Test
+    void shouldRecognizeStringConstants() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "\"Hello, Jack!\"");
+
+        Token token = tokenizer.nextToken();
+
+        assertEquals(TokenType.STRING, token.getType());
+        assertEquals("Hello, Jack!", token.getLexeme());
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
+
+    @Test
+    void shouldRecognizeEmptyString() {
+        JackTokenizer tokenizer = new JackTokenizer("\"\"");
+
+        Token token = tokenizer.nextToken();
+
+        assertEquals(TokenType.STRING, token.getType());
+        assertEquals("", token.getLexeme());
+    }
+
+    @Test
+    void shouldPreserveSymbolsInsideString() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "\"a < b & c > d\"");
+
+        Token token = tokenizer.nextToken();
+
+        assertEquals(TokenType.STRING, token.getType());
+        assertEquals("a < b & c > d", token.getLexeme());
+    }
+
+    @Test
+    void shouldRecordStartingLineOfString() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "class\n\"Hello\"");
+
+        tokenizer.nextToken();
+
+        Token token = tokenizer.nextToken();
+
+        assertEquals(TokenType.STRING, token.getType());
+        assertEquals("Hello", token.getLexeme());
+        assertEquals(2, token.getLine());
+    }
+
+    @Test
+    void shouldRejectUnterminatedString() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "\"Hello, Jack!");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                tokenizer::nextToken);
+
+        assertTrue(
+                exception.getMessage().contains("não terminada"));
+    }
 }
