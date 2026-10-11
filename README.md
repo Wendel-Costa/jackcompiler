@@ -49,6 +49,8 @@ jackcompiler/
 │   ├── main/
 │   │   └── java/
 │   │       └── br/edu/ufma/jackcompiler/
+│   │           ├── TokenType.java
+│   │           └── Token.java
 │   └── test/
 │       └── java/
 │           └── br/edu/ufma/jackcompiler/
