@@ -1,8 +1,36 @@
 package br.edu.ufma.jackcompiler;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public final class JackTokenizer {
+
+    private static final Map<String, TokenType> KEYWORDS = new HashMap<>();
+
+    static {
+        KEYWORDS.put("class", TokenType.CLASS);
+        KEYWORDS.put("constructor", TokenType.CONSTRUCTOR);
+        KEYWORDS.put("function", TokenType.FUNCTION);
+        KEYWORDS.put("method", TokenType.METHOD);
+        KEYWORDS.put("field", TokenType.FIELD);
+        KEYWORDS.put("static", TokenType.STATIC);
+        KEYWORDS.put("var", TokenType.VAR);
+        KEYWORDS.put("int", TokenType.INT);
+        KEYWORDS.put("char", TokenType.CHAR);
+        KEYWORDS.put("boolean", TokenType.BOOLEAN);
+        KEYWORDS.put("void", TokenType.VOID);
+        KEYWORDS.put("true", TokenType.TRUE);
+        KEYWORDS.put("false", TokenType.FALSE);
+        KEYWORDS.put("null", TokenType.NULL);
+        KEYWORDS.put("this", TokenType.THIS);
+        KEYWORDS.put("let", TokenType.LET);
+        KEYWORDS.put("do", TokenType.DO);
+        KEYWORDS.put("if", TokenType.IF);
+        KEYWORDS.put("else", TokenType.ELSE);
+        KEYWORDS.put("while", TokenType.WHILE);
+        KEYWORDS.put("return", TokenType.RETURN);
+    }
 
     private final String input;
     private int current;
@@ -16,6 +44,54 @@ public final class JackTokenizer {
 
         this.current = 0;
         this.line = 1;
+    }
+
+    public Token nextToken() {
+        skipWhitespace();
+
+        if (isAtEnd()) {
+            return new Token(TokenType.EOF, "EOF", line);
+        }
+
+        char character = peek();
+
+        if (Character.isLetter(character)) {
+            return identifier();
+        }
+
+        throw new IllegalArgumentException(
+            "Caractere inesperado na linha "
+                + line + ": '" + character + "'"
+        );
+    }
+
+    private void skipWhitespace() {
+        while (!isAtEnd() && Character.isWhitespace(peek())) {
+            advance();
+        }
+    }
+
+    private Token identifier() {
+        int start = current;
+        int startLine = line;
+
+        while (!isAtEnd() && isIdentifierPart(peek())) {
+            advance();
+        }
+
+        String lexeme = input.substring(start, current);
+
+        TokenType type = KEYWORDS.getOrDefault(
+            lexeme,
+            TokenType.IDENT
+        );
+
+        return new Token(type, lexeme, startLine);
+    }
+
+    private boolean isIdentifierPart(char character) {
+        return Character.isLetterOrDigit(character)
+            || character == '_';
     }
 
     boolean isAtEnd() {
