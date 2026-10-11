@@ -58,6 +58,10 @@ public final class JackTokenizer {
             return identifier();
         }
 
+        if (isDigit(character)) {
+            return integerConstant();
+        }
+
         return symbol();
     }
 
@@ -117,6 +121,40 @@ public final class JackTokenizer {
                 TokenType.IDENT);
 
         return new Token(type, lexeme, startLine);
+    }
+
+    private Token integerConstant() {
+        int start = current;
+        int startLine = line;
+        int value = 0;
+        boolean outOfRange = false;
+
+        while (!isAtEnd() && isDigit(peek())) {
+            int digit = advance() - '0';
+
+            if (!outOfRange) {
+                if (value > (32767 - digit) / 10) {
+                    outOfRange = true;
+                } else {
+                    value = value * 10 + digit;
+                }
+            }
+        }
+
+        String lexeme = input.substring(start, current);
+
+        if (outOfRange) {
+            throw new IllegalArgumentException(
+                    "Constante inteira fora do intervalo permitido "
+                            + "(0 a 32767) na linha "
+                            + startLine + ": " + lexeme);
+        }
+
+        return new Token(TokenType.NUMBER, lexeme, startLine);
+    }
+
+    private boolean isDigit(char character) {
+        return character >= '0' && character <= '9';
     }
 
     private boolean isIdentifierPart(char character) {

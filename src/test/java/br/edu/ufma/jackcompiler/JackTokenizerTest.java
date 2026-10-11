@@ -213,4 +213,62 @@ class JackTokenizerTest {
 
         assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
     }
+
+    @Test
+    void shouldRecognizeIntegerConstants() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "0 7 123 32767");
+
+        String[] expectedLexemes = {
+                "0",
+                "7",
+                "123",
+                "32767"
+        };
+
+        for (String expectedLexeme : expectedLexemes) {
+            Token token = tokenizer.nextToken();
+
+            assertEquals(TokenType.NUMBER, token.getType());
+            assertEquals(expectedLexeme, token.getLexeme());
+        }
+
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
+
+    @Test
+    void shouldRecognizeMinusSeparatelyFromInteger() {
+        JackTokenizer tokenizer = new JackTokenizer("-12");
+
+        Token minus = tokenizer.nextToken();
+
+        assertEquals(TokenType.MINUS, minus.getType());
+        assertEquals("-", minus.getLexeme());
+
+        Token number = tokenizer.nextToken();
+
+        assertEquals(TokenType.NUMBER, number.getType());
+        assertEquals("12", number.getLexeme());
+    }
+
+    @Test
+    void shouldRejectIntegerAboveMaximum() {
+        JackTokenizer tokenizer = new JackTokenizer("32768");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                tokenizer::nextToken);
+
+        assertTrue(exception.getMessage().contains("32768"));
+    }
+
+    @Test
+    void shouldRejectVeryLargeIntegerWithoutOverflow() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "999999999999999999999999999999999999");
+
+        assertThrows(
+                IllegalArgumentException.class,
+                tokenizer::nextToken);
+    }
 }
