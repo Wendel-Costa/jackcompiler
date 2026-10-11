@@ -38,9 +38,8 @@ public final class JackTokenizer {
 
     public JackTokenizer(String input) {
         this.input = Objects.requireNonNull(
-            input,
-            "O código-fonte não pode ser nulo."
-        );
+                input,
+                "O código-fonte não pode ser nulo.");
 
         this.current = 0;
         this.line = 1;
@@ -59,10 +58,42 @@ public final class JackTokenizer {
             return identifier();
         }
 
-        throw new IllegalArgumentException(
-            "Caractere inesperado na linha "
-                + line + ": '" + character + "'"
-        );
+        return symbol();
+    }
+
+    private Token symbol() {
+        int startLine = line;
+        char character = peek();
+
+        TokenType type = switch (character) {
+            case '(' -> TokenType.LPAREN;
+            case ')' -> TokenType.RPAREN;
+            case '{' -> TokenType.LBRACE;
+            case '}' -> TokenType.RBRACE;
+            case '[' -> TokenType.LBRACKET;
+            case ']' -> TokenType.RBRACKET;
+            case ',' -> TokenType.COMMA;
+            case ';' -> TokenType.SEMICOLON;
+            case '.' -> TokenType.DOT;
+            case '+' -> TokenType.PLUS;
+            case '-' -> TokenType.MINUS;
+            case '*' -> TokenType.ASTERISK;
+            case '/' -> TokenType.SLASH;
+            case '&' -> TokenType.AND;
+            case '|' -> TokenType.OR;
+            case '~' -> TokenType.NOT;
+            case '<' -> TokenType.LT;
+            case '>' -> TokenType.GT;
+            case '=' -> TokenType.EQ;
+
+            default -> throw new IllegalArgumentException(
+                    "Caractere inesperado na linha "
+                            + line + ": '" + character + "'");
+        };
+
+        advance();
+
+        return new Token(type, String.valueOf(character), startLine);
     }
 
     private void skipWhitespace() {
@@ -82,16 +113,15 @@ public final class JackTokenizer {
         String lexeme = input.substring(start, current);
 
         TokenType type = KEYWORDS.getOrDefault(
-            lexeme,
-            TokenType.IDENT
-        );
+                lexeme,
+                TokenType.IDENT);
 
         return new Token(type, lexeme, startLine);
     }
 
     private boolean isIdentifierPart(char character) {
         return Character.isLetterOrDigit(character)
-            || character == '_';
+                || character == '_';
     }
 
     boolean isAtEnd() {

@@ -174,4 +174,43 @@ class JackTokenizerTest {
         assertEquals(3, third.getLine());
     }
 
+    @Test
+    void shouldRecognizeAllSymbols() {
+        String source = "{}()[].,;+-*/&|<>=~";
+
+        TokenType[] expectedTypes = {
+                TokenType.LBRACE,
+                TokenType.RBRACE,
+                TokenType.LPAREN,
+                TokenType.RPAREN,
+                TokenType.LBRACKET,
+                TokenType.RBRACKET,
+                TokenType.DOT,
+                TokenType.COMMA,
+                TokenType.SEMICOLON,
+                TokenType.PLUS,
+                TokenType.MINUS,
+                TokenType.ASTERISK,
+                TokenType.SLASH,
+                TokenType.AND,
+                TokenType.OR,
+                TokenType.LT,
+                TokenType.GT,
+                TokenType.EQ,
+                TokenType.NOT
+        };
+
+        JackTokenizer tokenizer = new JackTokenizer(source);
+
+        for (int i = 0; i < expectedTypes.length; i++) {
+            Token token = tokenizer.nextToken();
+
+            assertEquals(expectedTypes[i], token.getType());
+            assertEquals(
+                    String.valueOf(source.charAt(i)),
+                    token.getLexeme());
+        }
+
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
 }
