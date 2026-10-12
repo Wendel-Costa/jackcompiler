@@ -331,4 +331,107 @@ class JackTokenizerTest {
         assertTrue(
                 exception.getMessage().contains("não terminada"));
     }
+
+    @Test
+    void shouldSkipWhitespaceAndLineComments() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                " \t\r\n// comentário\r\nclass // outro\nMain");
+
+        Token keyword = tokenizer.nextToken();
+        assertEquals(TokenType.CLASS, keyword.getType());
+        assertEquals(3, keyword.getLine());
+
+        Token identifier = tokenizer.nextToken();
+        assertEquals(TokenType.IDENT, identifier.getType());
+        assertEquals("Main", identifier.getLexeme());
+        assertEquals(4, identifier.getLine());
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
+
+    @Test
+    void shouldSkipLineCommentAtEndOfInput() {
+        JackTokenizer tokenizer = new JackTokenizer("// sem quebra de linha");
+
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
+
+    @Test
+    void shouldSkipBlockAndDocumentationCommentsBetweenTokens() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "class/* bloco */Main/** documentação */{}");
+
+        assertEquals(TokenType.CLASS, tokenizer.nextToken().getType());
+        assertEquals("Main", tokenizer.nextToken().getLexeme());
+        assertEquals(TokenType.LBRACE, tokenizer.nextToken().getType());
+        assertEquals(TokenType.RBRACE, tokenizer.nextToken().getType());
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
+
+    @Test
+    void shouldCountLinesInsideBlockComment() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "/* primeira\nsegunda\n*/return");
+
+        Token token = tokenizer.nextToken();
+        assertEquals(TokenType.RETURN, token.getType());
+        assertEquals(3, token.getLine());
+    }
+
+    @Test
+    void shouldSkipConsecutiveCommentsAtEndOfInput() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "/**//* bloco *//** documentação */ \t// fim");
+
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
+
+    @Test
+    void shouldPreserveDivisionAroundComments() {
+        JackTokenizer tokenizer = new JackTokenizer("12/3/* bloco *//2/");
+
+        assertEquals("12", tokenizer.nextToken().getLexeme());
+        assertEquals(TokenType.SLASH, tokenizer.nextToken().getType());
+        assertEquals("3", tokenizer.nextToken().getLexeme());
+        assertEquals(TokenType.SLASH, tokenizer.nextToken().getType());
+        assertEquals("2", tokenizer.nextToken().getLexeme());
+        assertEquals(TokenType.SLASH, tokenizer.nextToken().getType());
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
+
+    @Test
+    void shouldPreserveCommentMarkersInsideStrings() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "\"// não é comentário /* nem isto */\"");
+
+        Token token = tokenizer.nextToken();
+        assertEquals(TokenType.STRING, token.getType());
+        assertEquals("// não é comentário /* nem isto */", token.getLexeme());
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
+
+    @Test
+    void shouldRejectUnterminatedBlockCommentsWithStartingLine() {
+        String[] sources = {"\n/*", "\n/** documentação", "\n/* texto\n*"};
+
+        for (String source : sources) {
+            JackTokenizer tokenizer = new JackTokenizer(source);
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    tokenizer::nextToken);
+
+            assertEquals("Comentário de bloco não terminado na linha 2",
+                    exception.getMessage());
+        }
+    }
+
+    @Test
+    void shouldIgnoreQuotesAndLineCommentMarkersInsideBlockComment() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "/* \" // conteúdo */return");
+
+        assertEquals(TokenType.RETURN, tokenizer.nextToken().getType());
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
 }

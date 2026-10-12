@@ -46,7 +46,7 @@ public final class JackTokenizer {
     }
 
     public Token nextToken() {
-        skipWhitespace();
+        skipWhitespaceAndComments();
 
         if (isAtEnd()) {
             return new Token(TokenType.EOF, "EOF", line);
@@ -104,10 +104,48 @@ public final class JackTokenizer {
         return new Token(type, String.valueOf(character), startLine);
     }
 
-    private void skipWhitespace() {
-        while (!isAtEnd() && Character.isWhitespace(peek())) {
+    private void skipWhitespaceAndComments() {
+        while (!isAtEnd()) {
+            if (Character.isWhitespace(peek())) {
+                advance();
+            } else if (peek() == '/' && peekNext() == '/') {
+                skipLineComment();
+            } else if (peek() == '/' && peekNext() == '*') {
+                skipBlockComment();
+            } else {
+                return;
+            }
+        }
+    }
+
+    private void skipLineComment() {
+        advance();
+        advance();
+
+        while (!isAtEnd() && peek() != '\n' && peek() != '\r') {
             advance();
         }
+    }
+
+    private void skipBlockComment() {
+        int startLine = line;
+
+        advance();
+        advance();
+
+        while (!isAtEnd()) {
+            if (peek() == '*' && peekNext() == '/') {
+                advance();
+                advance();
+                return;
+            }
+
+            advance();
+        }
+
+        throw new IllegalArgumentException(
+                "Comentário de bloco não terminado na linha "
+                        + startLine);
     }
 
     private Token identifier() {
