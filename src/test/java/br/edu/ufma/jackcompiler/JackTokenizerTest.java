@@ -427,6 +427,53 @@ class JackTokenizerTest {
     }
 
     @Test
+    void shouldRecognizeIdentifiersStartingWithUnderscore() {
+        JackTokenizer tokenizer = new JackTokenizer("_ _value _count2");
+
+        for (String expected : new String[]{"_", "_value", "_count2"}) {
+            Token token = tokenizer.nextToken();
+            assertEquals(TokenType.IDENT, token.getType());
+            assertEquals(expected, token.getLexeme());
+        }
+    }
+
+    @Test
+    void shouldRejectLineBreaksInsideStrings() {
+        for (String separator : new String[]{"\n", "\r", "\r\n"}) {
+            JackTokenizer tokenizer = new JackTokenizer("\"Hello" + separator + "Jack\"");
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class, tokenizer::nextToken);
+            assertTrue(exception.getMessage().contains("linha 1"));
+        }
+    }
+
+    @Test
+    void shouldCountUnixWindowsAndMacLineEndings() {
+        for (String separator : new String[]{"\n", "\r", "\r\n"}) {
+            JackTokenizer tokenizer = new JackTokenizer(
+                    "// comentário" + separator + "/* bloco" + separator + "*/class");
+            Token token = tokenizer.nextToken();
+            assertEquals(TokenType.CLASS, token.getType());
+            assertEquals(3, token.getLine());
+        }
+    }
+
+    @Test
+    void shouldRejectUnexpectedCharacters() {
+        for (String source : new String[]{"@", "é", "١"}) {
+            JackTokenizer tokenizer = new JackTokenizer(source);
+            assertThrows(IllegalArgumentException.class, tokenizer::nextToken);
+        }
+    }
+
+    @Test
+    void shouldPreserveUnicodeAndBackslashesInsideStrings() {
+        JackTokenizer tokenizer = new JackTokenizer("\"Olá \\n\"");
+        assertEquals("Olá \\n", tokenizer.nextToken().getLexeme());
+        assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
+
+    @Test
     void shouldIgnoreQuotesAndLineCommentMarkersInsideBlockComment() {
         JackTokenizer tokenizer = new JackTokenizer(
                 "/* \" // conteúdo */return");

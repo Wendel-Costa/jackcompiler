@@ -54,7 +54,7 @@ public final class JackTokenizer {
 
         char character = peek();
 
-        if (Character.isLetter(character)) {
+        if (isIdentifierStart(character)) {
             return identifier();
         }
 
@@ -203,6 +203,11 @@ public final class JackTokenizer {
         int start = current;
 
         while (!isAtEnd() && peek() != '"') {
+            if (peek() == '\n' || peek() == '\r') {
+                throw new IllegalArgumentException(
+                        "Quebra de linha em constante string na linha "
+                                + startLine);
+            }
             advance();
         }
 
@@ -223,9 +228,14 @@ public final class JackTokenizer {
         return character >= '0' && character <= '9';
     }
 
-    private boolean isIdentifierPart(char character) {
-        return Character.isLetterOrDigit(character)
+    private boolean isIdentifierStart(char character) {
+        return (character >= 'a' && character <= 'z')
+                || (character >= 'A' && character <= 'Z')
                 || character == '_';
+    }
+
+    private boolean isIdentifierPart(char character) {
+        return isIdentifierStart(character) || isDigit(character);
     }
 
     boolean isAtEnd() {
@@ -258,7 +268,9 @@ public final class JackTokenizer {
         char character = input.charAt(current);
         current++;
 
-        if (character == '\n') {
+        if (character == '\r'
+                || (character == '\n'
+                        && (current < 2 || input.charAt(current - 2) != '\r'))) {
             line++;
         }
 
