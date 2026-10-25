@@ -9,32 +9,48 @@ public final class TokenXmlWriter {
     }
 
     public static String toXml(JackTokenizer tokenizer) {
-        Objects.requireNonNull(tokenizer, "O tokenizer não pode ser nulo.");
+        Objects.requireNonNull(
+                tokenizer,
+                "O tokenizer não pode ser nulo.");
+
         StringBuilder xml = new StringBuilder("<tokens>\n");
 
-        for (Token token = tokenizer.nextToken(); token.getType() != TokenType.EOF;
+        for (Token token = tokenizer.nextToken();
+                token.getType() != TokenType.EOF;
                 token = tokenizer.nextToken()) {
             String tag = tagFor(token.getType());
-            xml.append('<').append(tag).append("> ")
+
+            xml.append('<')
+                    .append(tag)
+                    .append("> ")
                     .append(escape(token.getLexeme()))
-                    .append(" </").append(tag).append(">\n");
+                    .append(" </")
+                    .append(tag)
+                    .append(">\n");
         }
 
         return xml.append("</tokens>\n").toString();
     }
 
-    private static String tagFor(TokenType type) {
+    static String tagFor(TokenType type) {
         return switch (type) {
-            case LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET,
-                    COMMA, SEMICOLON, DOT, PLUS, MINUS, ASTERISK, SLASH,
-                    AND, OR, NOT, LT, GT, EQ -> "symbol";
+            case LPAREN, RPAREN, LBRACE, RBRACE,
+                    LBRACKET, RBRACKET, COMMA,
+                    SEMICOLON, DOT, PLUS, MINUS,
+                    ASTERISK, SLASH, AND, OR, NOT,
+                    LT, GT, EQ -> "symbol";
+
             case NUMBER -> "integerConstant";
             case STRING -> "stringConstant";
             case IDENT -> "identifier";
-            case CLASS, CONSTRUCTOR, FUNCTION, METHOD, FIELD, STATIC,
-                    VAR, INT, CHAR, BOOLEAN, VOID, TRUE, FALSE, NULL,
-                    THIS, LET, DO, IF, ELSE, WHILE, RETURN -> "keyword";
-            case EOF -> throw new IllegalArgumentException("EOF não deve ser serializado.");
+
+            case CLASS, CONSTRUCTOR, FUNCTION, METHOD,
+                    FIELD, STATIC, VAR, INT, CHAR, BOOLEAN,
+                    VOID, TRUE, FALSE, NULL, THIS, LET,
+                    DO, IF, ELSE, WHILE, RETURN -> "keyword";
+
+            case EOF -> throw new IllegalArgumentException(
+                    "EOF não deve ser serializado.");
         };
     }
 
