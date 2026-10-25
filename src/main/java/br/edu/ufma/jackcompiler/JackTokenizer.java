@@ -35,6 +35,7 @@ public final class JackTokenizer {
     private final String input;
     private int current;
     private int line;
+    private int column;
 
     public JackTokenizer(String input) {
         this.input = Objects.requireNonNull(
@@ -43,13 +44,14 @@ public final class JackTokenizer {
 
         this.current = 0;
         this.line = 1;
+        this.column = 1;
     }
 
     public Token nextToken() {
         skipWhitespaceAndComments();
 
         if (isAtEnd()) {
-            return new Token(TokenType.EOF, "EOF", line);
+            return new Token(TokenType.EOF, "EOF", line, column);
         }
 
         char character = peek();
@@ -71,6 +73,7 @@ public final class JackTokenizer {
 
     private Token symbol() {
         int startLine = line;
+        int startColumn = column;
         char character = peek();
 
         TokenType type = switch (character) {
@@ -101,7 +104,11 @@ public final class JackTokenizer {
 
         advance();
 
-        return new Token(type, String.valueOf(character), startLine);
+        return new Token(
+                type,
+                String.valueOf(character),
+                startLine,
+                startColumn);
     }
 
     private void skipWhitespaceAndComments() {
@@ -151,6 +158,7 @@ public final class JackTokenizer {
     private Token identifier() {
         int start = current;
         int startLine = line;
+        int startColumn = column;
 
         while (!isAtEnd() && isIdentifierPart(peek())) {
             advance();
@@ -162,12 +170,13 @@ public final class JackTokenizer {
                 lexeme,
                 TokenType.IDENT);
 
-        return new Token(type, lexeme, startLine);
+        return new Token(type, lexeme, startLine, startColumn);
     }
 
     private Token integerConstant() {
         int start = current;
         int startLine = line;
+        int startColumn = column;
         int value = 0;
         boolean outOfRange = false;
 
@@ -192,11 +201,16 @@ public final class JackTokenizer {
                             + startLine + ": " + lexeme);
         }
 
-        return new Token(TokenType.NUMBER, lexeme, startLine);
+        return new Token(
+                TokenType.NUMBER,
+                lexeme,
+                startLine,
+                startColumn);
     }
 
     private Token stringConstant() {
         int startLine = line;
+        int startColumn = column;
 
         advance();
 
@@ -221,7 +235,11 @@ public final class JackTokenizer {
 
         advance();
 
-        return new Token(TokenType.STRING, lexeme, startLine);
+        return new Token(
+                TokenType.STRING,
+                lexeme,
+                startLine,
+                startColumn);
     }
 
     private boolean isDigit(char character) {
@@ -268,10 +286,17 @@ public final class JackTokenizer {
         char character = input.charAt(current);
         current++;
 
-        if (character == '\r'
-                || (character == '\n'
-                        && (current < 2 || input.charAt(current - 2) != '\r'))) {
+        if (character == '\r') {
             line++;
+            column = 1;
+        } else if (character == '\n') {
+            if (current < 2 || input.charAt(current - 2) != '\r') {
+                line++;
+            }
+
+            column = 1;
+        } else {
+            column++;
         }
 
         return character;

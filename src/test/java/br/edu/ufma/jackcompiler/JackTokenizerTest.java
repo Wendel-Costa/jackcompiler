@@ -412,7 +412,7 @@ class JackTokenizerTest {
 
     @Test
     void shouldRejectUnterminatedBlockCommentsWithStartingLine() {
-        String[] sources = {"\n/*", "\n/** documentação", "\n/* texto\n*"};
+        String[] sources = { "\n/*", "\n/** documentação", "\n/* texto\n*" };
 
         for (String source : sources) {
             JackTokenizer tokenizer = new JackTokenizer(source);
@@ -430,7 +430,7 @@ class JackTokenizerTest {
     void shouldRecognizeIdentifiersStartingWithUnderscore() {
         JackTokenizer tokenizer = new JackTokenizer("_ _value _count2");
 
-        for (String expected : new String[]{"_", "_value", "_count2"}) {
+        for (String expected : new String[] { "_", "_value", "_count2" }) {
             Token token = tokenizer.nextToken();
             assertEquals(TokenType.IDENT, token.getType());
             assertEquals(expected, token.getLexeme());
@@ -439,7 +439,7 @@ class JackTokenizerTest {
 
     @Test
     void shouldRejectLineBreaksInsideStrings() {
-        for (String separator : new String[]{"\n", "\r", "\r\n"}) {
+        for (String separator : new String[] { "\n", "\r", "\r\n" }) {
             JackTokenizer tokenizer = new JackTokenizer("\"Hello" + separator + "Jack\"");
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class, tokenizer::nextToken);
@@ -449,7 +449,7 @@ class JackTokenizerTest {
 
     @Test
     void shouldCountUnixWindowsAndMacLineEndings() {
-        for (String separator : new String[]{"\n", "\r", "\r\n"}) {
+        for (String separator : new String[] { "\n", "\r", "\r\n" }) {
             JackTokenizer tokenizer = new JackTokenizer(
                     "// comentário" + separator + "/* bloco" + separator + "*/class");
             Token token = tokenizer.nextToken();
@@ -460,7 +460,7 @@ class JackTokenizerTest {
 
     @Test
     void shouldRejectUnexpectedCharacters() {
-        for (String source : new String[]{"@", "é", "١"}) {
+        for (String source : new String[] { "@", "é", "١" }) {
             JackTokenizer tokenizer = new JackTokenizer(source);
             assertThrows(IllegalArgumentException.class, tokenizer::nextToken);
         }
@@ -480,5 +480,36 @@ class JackTokenizerTest {
 
         assertEquals(TokenType.RETURN, tokenizer.nextToken().getType());
         assertEquals(TokenType.EOF, tokenizer.nextToken().getType());
+    }
+
+    @Test
+    void shouldTrackStartingColumnOfTokens() {
+        JackTokenizer tokenizer = new JackTokenizer(
+                "  class Main\r\n  let x = 1;");
+
+        Token classToken = tokenizer.nextToken();
+        Token mainToken = tokenizer.nextToken();
+        Token letToken = tokenizer.nextToken();
+        Token xToken = tokenizer.nextToken();
+        Token equalsToken = tokenizer.nextToken();
+        Token numberToken = tokenizer.nextToken();
+
+        assertEquals(1, classToken.getLine());
+        assertEquals(3, classToken.getColumn());
+
+        assertEquals(1, mainToken.getLine());
+        assertEquals(9, mainToken.getColumn());
+
+        assertEquals(2, letToken.getLine());
+        assertEquals(3, letToken.getColumn());
+
+        assertEquals(2, xToken.getLine());
+        assertEquals(7, xToken.getColumn());
+
+        assertEquals(2, equalsToken.getLine());
+        assertEquals(9, equalsToken.getColumn());
+
+        assertEquals(2, numberToken.getLine());
+        assertEquals(11, numberToken.getColumn());
     }
 }
