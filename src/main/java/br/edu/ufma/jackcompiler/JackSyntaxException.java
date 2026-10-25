@@ -13,7 +13,20 @@ public final class JackSyntaxException extends RuntimeException {
             Token foundToken,
             TokenType expectedType) {
 
-        super(createMessage(foundToken, expectedType));
+        this(
+                foundToken,
+                Objects.requireNonNull(
+                        expectedType,
+                        "O tipo esperado não pode ser nulo."
+                ).name()
+        );
+    }
+
+    public JackSyntaxException(
+            Token foundToken,
+            String expectedDescription) {
+
+        super(createMessage(foundToken, expectedDescription));
 
         this.line = foundToken.getLine();
         this.column = foundToken.getColumn();
@@ -21,15 +34,17 @@ public final class JackSyntaxException extends RuntimeException {
 
     private static String createMessage(
             Token foundToken,
-            TokenType expectedType) {
+            String expectedDescription) {
 
         Objects.requireNonNull(
                 foundToken,
-                "O token encontrado não pode ser nulo.");
+                "O token encontrado não pode ser nulo."
+        );
 
         Objects.requireNonNull(
-                expectedType,
-                "O tipo esperado não pode ser nulo.");
+                expectedDescription,
+                "A descrição do esperado não pode ser nula."
+        );
 
         String description;
 
@@ -48,7 +63,7 @@ public final class JackSyntaxException extends RuntimeException {
                 + ", coluna "
                 + foundToken.getColumn()
                 + ": esperado "
-                + expectedType
+                + expectedDescription
                 + ", encontrado "
                 + description
                 + ".";
