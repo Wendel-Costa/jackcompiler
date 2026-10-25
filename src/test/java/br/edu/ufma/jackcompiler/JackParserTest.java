@@ -454,4 +454,283 @@ class JackParserTest {
                 assertEquals(1, exception.getLine());
                 assertTrue(exception.getColumn() > 0);
         }
+
+        @Test
+        void shouldParseLetStatementWithBinaryExpression() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "var int x; "
+                                                                + "let x = 2 + 3; "
+                                                                + "} "
+                                                                + "}"));
+
+                String xml = parser.parseClass();
+
+                assertTrue(xml.contains("<statements>"));
+                assertTrue(xml.contains("<letStatement>"));
+                assertTrue(xml.contains("<keyword> let </keyword>"));
+                assertTrue(xml.contains("<identifier> x </identifier>"));
+                assertTrue(xml.contains("<integerConstant> 2 </integerConstant>"));
+                assertTrue(xml.contains("<symbol> + </symbol>"));
+                assertTrue(xml.contains("<integerConstant> 3 </integerConstant>"));
+
+                assertEquals(
+                                1,
+                                xml.split("<expression>", -1).length - 1);
+        }
+
+        @Test
+        void shouldParseArrayAssignmentWithNestedExpression() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "var Array arr; "
+                                                                + "var int i, x; "
+                                                                + "let arr[i] = x * (i + 1); "
+                                                                + "} "
+                                                                + "}"));
+
+                String xml = parser.parseClass();
+
+                assertTrue(xml.contains("<identifier> arr </identifier>"));
+                assertTrue(xml.contains("<symbol> [ </symbol>"));
+                assertTrue(xml.contains("<identifier> i </identifier>"));
+                assertTrue(xml.contains("<symbol> ] </symbol>"));
+                assertTrue(xml.contains("<symbol> * </symbol>"));
+                assertTrue(xml.contains("<symbol> ( </symbol>"));
+                assertTrue(xml.contains("<symbol> + </symbol>"));
+                assertTrue(xml.contains("<symbol> ) </symbol>"));
+
+                assertEquals(
+                                3,
+                                xml.split("<expression>", -1).length - 1);
+        }
+
+        @Test
+        void shouldParseMultipleLetStatements() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "var int x, y; "
+                                                                + "let x = 10; "
+                                                                + "let y = x - 4; "
+                                                                + "} "
+                                                                + "}"));
+
+                String xml = parser.parseClass();
+
+                assertEquals(
+                                2,
+                                xml.split("<letStatement>", -1).length - 1);
+
+                assertEquals(
+                                2,
+                                xml.split("</letStatement>", -1).length - 1);
+        }
+
+        @Test
+        void shouldParseSubroutineCallInsideExpression() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "var int x; "
+                                                                + "let x = Math.multiply(2, 3); "
+                                                                + "} "
+                                                                + "}"));
+
+                String xml = parser.parseClass();
+
+                assertTrue(xml.contains("<identifier> Math </identifier>"));
+                assertTrue(xml.contains("<symbol> . </symbol>"));
+                assertTrue(xml.contains("<identifier> multiply </identifier>"));
+                assertTrue(xml.contains("<expressionList>"));
+                assertTrue(xml.contains("<symbol> , </symbol>"));
+
+                assertEquals(
+                                1,
+                                xml.split("<expressionList>", -1).length - 1);
+        }
+
+        @Test
+        void shouldRejectLetStatementWithoutEquals() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "var int x; "
+                                                                + "let x 1; "
+                                                                + "} "
+                                                                + "}"));
+
+                JackSyntaxException exception = assertThrows(
+                                JackSyntaxException.class,
+                                parser::parseClass);
+
+                assertTrue(exception.getMessage().contains("EQ"));
+                assertEquals(1, exception.getLine());
+        }
+
+        @Test
+        void shouldRejectLetStatementWithoutSemicolon() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "var int x; "
+                                                                + "let x = 1 "
+                                                                + "} "
+                                                                + "}"));
+
+                JackSyntaxException exception = assertThrows(
+                                JackSyntaxException.class,
+                                parser::parseClass);
+
+                assertTrue(exception.getMessage().contains("SEMICOLON"));
+                assertEquals(1, exception.getLine());
+        }
+
+        @Test
+        void shouldRejectLetStatementWithoutRightHandExpression() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "var int x; "
+                                                                + "let x = ; "
+                                                                + "} "
+                                                                + "}"));
+
+                JackSyntaxException exception = assertThrows(
+                                JackSyntaxException.class,
+                                parser::parseClass);
+
+                assertTrue(exception.getMessage().contains("termo válido"));
+                assertEquals(1, exception.getLine());
+        }
+
+        @Test
+        void shouldParseIfStatementWithElseBlock() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "var int x; "
+                                                                + "let x = 1; "
+                                                                + "if (x < 10) { "
+                                                                + "let x = x + 1; "
+                                                                + "} else { "
+                                                                + "let x = 0; "
+                                                                + "} "
+                                                                + "} "
+                                                                + "}"));
+
+                String xml = parser.parseClass();
+
+                assertTrue(xml.contains("<ifStatement>"));
+                assertTrue(xml.contains("</ifStatement>"));
+
+                assertTrue(xml.contains("<keyword> if </keyword>"));
+                assertTrue(xml.contains("<keyword> else </keyword>"));
+
+                assertTrue(xml.contains("<symbol> ( </symbol>"));
+                assertTrue(xml.contains("<symbol> ) </symbol>"));
+
+                assertEquals(
+                                1,
+                                xml.split("<ifStatement>", -1).length - 1);
+
+                assertEquals(
+                                3,
+                                xml.split("<letStatement>", -1).length - 1);
+
+                assertEquals(
+                                3,
+                                xml.split("<statements>", -1).length - 1);
+        }
+
+        @Test
+        void shouldParseIfStatementWithoutElseBlock() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "if (true) { "
+                                                                + "let x = 1; "
+                                                                + "} "
+                                                                + "} "
+                                                                + "}"));
+
+                String xml = parser.parseClass();
+
+                assertTrue(xml.contains("<ifStatement>"));
+                assertTrue(xml.contains("<keyword> true </keyword>"));
+
+                assertFalse(xml.contains("<keyword> else </keyword>"));
+
+                assertEquals(
+                                1,
+                                xml.split("<ifStatement>", -1).length - 1);
+
+                assertEquals(
+                                2,
+                                xml.split("<statements>", -1).length - 1);
+        }
+
+        @Test
+        void shouldParseNestedIfStatements() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "var int x; "
+                                                                + "if (x < 10) { "
+                                                                + "if (x > 0) { "
+                                                                + "let x = x - 1; "
+                                                                + "} "
+                                                                + "} "
+                                                                + "} "
+                                                                + "}"));
+
+                String xml = parser.parseClass();
+
+                assertEquals(
+                                2,
+                                xml.split("<ifStatement>", -1).length - 1);
+
+                assertEquals(
+                                2,
+                                xml.split("</ifStatement>", -1).length - 1);
+
+                assertEquals(
+                                3,
+                                xml.split("<statements>", -1).length - 1);
+        }
+
+        @Test
+        void shouldRejectIfStatementWithoutClosingParenthesis() {
+                JackParser parser = new JackParser(
+                                new JackTokenizer(
+                                                "class Main { "
+                                                                + "function void main() { "
+                                                                + "if (x < 10 { "
+                                                                + "let x = 1; "
+                                                                + "} "
+                                                                + "} "
+                                                                + "}"));
+
+                JackSyntaxException exception = assertThrows(
+                                JackSyntaxException.class,
+                                parser::parseClass);
+
+                assertTrue(
+                                exception.getMessage().contains("RPAREN"));
+
+                assertEquals(1, exception.getLine());
+                assertTrue(exception.getColumn() > 0);
+        }
 }

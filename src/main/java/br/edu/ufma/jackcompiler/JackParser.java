@@ -214,6 +214,8 @@ public final class JackParser {
             parseVarDec();
         }
 
+        parseStatements();
+
         consumeAndWrite(TokenType.RBRACE);
 
         xmlWriter.closeTag("subroutineBody");
@@ -236,5 +238,214 @@ public final class JackParser {
         consumeAndWrite(TokenType.SEMICOLON);
 
         xmlWriter.closeTag("varDec");
+    }
+
+    private void parseStatements() {
+        xmlWriter.openTag("statements");
+
+        while (currentToken.getType() == TokenType.LET
+                || currentToken.getType() == TokenType.IF) {
+
+            switch (currentToken.getType()) {
+                case LET:
+                    parseLetStatement();
+                    break;
+
+                case IF:
+                    parseIfStatement();
+                    break;
+
+                default:
+                    throw new JackSyntaxException(
+                            currentToken,
+                            "comando válido");
+            }
+        }
+
+        xmlWriter.closeTag("statements");
+    }
+
+    private void parseLetStatement() {
+        xmlWriter.openTag("letStatement");
+
+        consumeAndWrite(TokenType.LET);
+
+        consumeAndWrite(TokenType.IDENT);
+
+        if (currentToken.getType() == TokenType.LBRACKET) {
+            consumeAndWrite(TokenType.LBRACKET);
+
+            parseExpression();
+
+            consumeAndWrite(TokenType.RBRACKET);
+        }
+
+        consumeAndWrite(TokenType.EQ);
+
+        parseExpression();
+
+        consumeAndWrite(TokenType.SEMICOLON);
+
+        xmlWriter.closeTag("letStatement");
+    }
+
+    private void parseIfStatement() {
+        xmlWriter.openTag("ifStatement");
+
+        consumeAndWrite(TokenType.IF);
+
+        consumeAndWrite(TokenType.LPAREN);
+
+        parseExpression();
+
+        consumeAndWrite(TokenType.RPAREN);
+
+        consumeAndWrite(TokenType.LBRACE);
+
+        parseStatements();
+
+        consumeAndWrite(TokenType.RBRACE);
+
+        if (currentToken.getType() == TokenType.ELSE) {
+            consumeAndWrite(TokenType.ELSE);
+
+            consumeAndWrite(TokenType.LBRACE);
+
+            parseStatements();
+
+            consumeAndWrite(TokenType.RBRACE);
+        }
+
+        xmlWriter.closeTag("ifStatement");
+    }
+
+    private void parseExpression() {
+        xmlWriter.openTag("expression");
+
+        parseTerm();
+
+        while (isOperator(currentToken.getType())) {
+            consumeAndWrite(currentToken.getType());
+
+            parseTerm();
+        }
+
+        xmlWriter.closeTag("expression");
+    }
+
+    private boolean isOperator(TokenType type) {
+        return type == TokenType.PLUS
+                || type == TokenType.MINUS
+                || type == TokenType.ASTERISK
+                || type == TokenType.SLASH
+                || type == TokenType.AND
+                || type == TokenType.OR
+                || type == TokenType.LT
+                || type == TokenType.GT
+                || type == TokenType.EQ;
+    }
+
+    private void parseTerm() {
+        xmlWriter.openTag("term");
+
+        TokenType type = currentToken.getType();
+
+        switch (type) {
+            case NUMBER:
+            case STRING:
+            case TRUE:
+            case FALSE:
+            case NULL:
+            case THIS:
+                consumeAndWrite(type);
+                break;
+
+            case LPAREN:
+                consumeAndWrite(TokenType.LPAREN);
+
+                parseExpression();
+
+                consumeAndWrite(TokenType.RPAREN);
+                break;
+
+            case MINUS:
+            case NOT:
+                consumeAndWrite(type);
+
+                parseTerm();
+                break;
+
+            case IDENT:
+                parseIdentifierTerm();
+                break;
+
+            default:
+                throw new JackSyntaxException(
+                        currentToken,
+                        "termo válido: constante, variável, chamada "
+                                + "de subrotina, expressão entre "
+                                + "parênteses ou operador unário");
+        }
+
+        xmlWriter.closeTag("term");
+    }
+
+    private void parseIdentifierTerm() {
+        consumeAndWrite(TokenType.IDENT);
+
+        if (currentToken.getType() == TokenType.LBRACKET) {
+            consumeAndWrite(TokenType.LBRACKET);
+
+            parseExpression();
+
+            consumeAndWrite(TokenType.RBRACKET);
+
+        } else if (currentToken.getType() == TokenType.LPAREN) {
+            consumeAndWrite(TokenType.LPAREN);
+
+            parseExpressionList();
+
+            consumeAndWrite(TokenType.RPAREN);
+
+        } else if (currentToken.getType() == TokenType.DOT) {
+            consumeAndWrite(TokenType.DOT);
+
+            consumeAndWrite(TokenType.IDENT);
+
+            consumeAndWrite(TokenType.LPAREN);
+
+            parseExpressionList();
+
+            consumeAndWrite(TokenType.RPAREN);
+        }
+    }
+
+    private void parseExpressionList() {
+        xmlWriter.openTag("expressionList");
+
+        if (isTermStart(currentToken.getType())) {
+            parseExpression();
+
+            while (currentToken.getType() == TokenType.COMMA) {
+                consumeAndWrite(TokenType.COMMA);
+
+                parseExpression();
+            }
+        }
+
+        xmlWriter.closeTag("expressionList");
+    }
+
+    private boolean isTermStart(TokenType type) {
+        return type == TokenType.NUMBER
+                || type == TokenType.STRING
+                || type == TokenType.TRUE
+                || type == TokenType.FALSE
+                || type == TokenType.NULL
+                || type == TokenType.THIS
+                || type == TokenType.IDENT
+                || type == TokenType.LPAREN
+                || type == TokenType.MINUS
+                || type == TokenType.NOT;
     }
 }
