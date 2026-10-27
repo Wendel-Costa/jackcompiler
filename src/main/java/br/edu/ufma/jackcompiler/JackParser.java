@@ -245,7 +245,8 @@ public final class JackParser {
 
         while (currentToken.getType() == TokenType.LET
                 || currentToken.getType() == TokenType.IF
-                || currentToken.getType() == TokenType.WHILE) {
+                || currentToken.getType() == TokenType.WHILE
+                || currentToken.getType() == TokenType.DO) {
 
             switch (currentToken.getType()) {
                 case LET:
@@ -258,6 +259,10 @@ public final class JackParser {
 
                 case WHILE:
                     parseWhileStatement();
+                    break;
+
+                case DO:
+                    parseDoStatement();
                     break;
 
                 default:
@@ -343,6 +348,20 @@ public final class JackParser {
         xmlWriter.closeTag("whileStatement");
     }
 
+    // doStatement: 'do' subroutineCall ';'
+    private void parseDoStatement() {
+        xmlWriter.openTag("doStatement");
+
+        consumeAndWrite(TokenType.DO);
+        consumeAndWrite(TokenType.IDENT);
+
+        parseSubroutineCallRest();
+
+        consumeAndWrite(TokenType.SEMICOLON);
+
+        xmlWriter.closeTag("doStatement");
+    }
+
     private void parseExpression() {
         xmlWriter.openTag("expression");
 
@@ -424,24 +443,24 @@ public final class JackParser {
 
             consumeAndWrite(TokenType.RBRACKET);
 
-        } else if (currentToken.getType() == TokenType.LPAREN) {
-            consumeAndWrite(TokenType.LPAREN);
-
-            parseExpressionList();
-
-            consumeAndWrite(TokenType.RPAREN);
-
-        } else if (currentToken.getType() == TokenType.DOT) {
-            consumeAndWrite(TokenType.DOT);
-
-            consumeAndWrite(TokenType.IDENT);
-
-            consumeAndWrite(TokenType.LPAREN);
-
-            parseExpressionList();
-
-            consumeAndWrite(TokenType.RPAREN);
+        } else if (currentToken.getType() == TokenType.LPAREN
+                || currentToken.getType() == TokenType.DOT) {
+            parseSubroutineCallRest();
         }
+    }
+
+    // O primeiro identificador já foi consumido; completa a chamada sem criar tags extras.
+    private void parseSubroutineCallRest() {
+        if (currentToken.getType() == TokenType.DOT) {
+            consumeAndWrite(TokenType.DOT);
+            consumeAndWrite(TokenType.IDENT);
+        }
+
+        consumeAndWrite(TokenType.LPAREN);
+
+        parseExpressionList();
+
+        consumeAndWrite(TokenType.RPAREN);
     }
 
     private void parseExpressionList() {
