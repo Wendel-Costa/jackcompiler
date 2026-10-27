@@ -246,7 +246,8 @@ public final class JackParser {
         while (currentToken.getType() == TokenType.LET
                 || currentToken.getType() == TokenType.IF
                 || currentToken.getType() == TokenType.WHILE
-                || currentToken.getType() == TokenType.DO) {
+                || currentToken.getType() == TokenType.DO
+                || currentToken.getType() == TokenType.RETURN) {
 
             switch (currentToken.getType()) {
                 case LET:
@@ -263,6 +264,10 @@ public final class JackParser {
 
                 case DO:
                     parseDoStatement();
+                    break;
+
+                case RETURN:
+                    parseReturnStatement();
                     break;
 
                 default:
@@ -360,6 +365,21 @@ public final class JackParser {
         consumeAndWrite(TokenType.SEMICOLON);
 
         xmlWriter.closeTag("doStatement");
+    }
+
+    // returnStatement: 'return' expression? ';'
+    private void parseReturnStatement() {
+        xmlWriter.openTag("returnStatement");
+
+        consumeAndWrite(TokenType.RETURN);
+
+        if (isTermStart(currentToken.getType())) {
+            parseExpression();
+        }
+
+        consumeAndWrite(TokenType.SEMICOLON);
+
+        xmlWriter.closeTag("returnStatement");
     }
 
     private void parseExpression() {
