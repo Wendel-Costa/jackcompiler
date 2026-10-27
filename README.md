@@ -17,7 +17,7 @@ Requisitos: JDK 17 ou superior e Maven 3.9 ou superior. Confira `java -version`,
 `javac -version` e `mvn -version`. A primeira execução precisa de internet para
 baixar as dependências declaradas no `pom.xml`, incluindo JUnit 5.
 
-Abra a pasta `jackcompiler` no VS Code e execute no terminal integrado:
+Abra a pasta raiz do repositório (a que contém `pom.xml`) no VS Code e execute no terminal integrado:
 
 ```sh
 mvn clean verify
@@ -65,7 +65,7 @@ uma falha de disco durante a gravação pode deixar uma das saídas.
 
 ## Reconhecimento e ruído
 
-`nextToken()` retorna tipo, lexema e linha. Reconhece 21 palavras reservadas,
+`nextToken()` retorna tipo, lexema, linha e coluna. Reconhece 21 palavras reservadas,
 19 símbolos (incluindo colchetes), inteiros de 0 a 32767, strings e identificadores.
 Identificadores começam com letra ASCII ou `_`, e continuam com letras, números
 ou `_`. Strings preservam Unicode e espaços, removem as aspas delimitadoras,
@@ -77,6 +77,32 @@ Comentários de bloco não são aninhados: o primeiro `*/` fecha o comentário.
 são preservados. LF, CRLF e CR contam como uma quebra de linha.
 Strings e comentários sem fechamento, inteiros fora da faixa e caracteres
 inesperados causam erro léxico. EOF encerra a leitura internamente.
+
+## Análise sintática
+
+O parser usa descida recursiva e consome os tokens do analisador léxico diretamente.
+`parseClass()` reconhece uma classe completa e exige EOF após a chave final.
+A cobertura inclui:
+
+- Declarações `static` e `field`, tipos primitivos e nomes de classes.
+- Subrotinas `constructor`, `function` e `method`, parâmetros e variáveis locais.
+- Comandos `let` (inclusive arrays), `if`/`else`, `while`, `do` e `return`.
+- Expressões, constantes inteiras e strings, `true`, `false`, `null` e `this`.
+- Termos entre parênteses, operadores unários `-` e `~`, acesso a arrays,
+  chamadas simples ou qualificadas e listas de argumentos vazias ou múltiplas.
+
+Expressões seguem `term (op term)*`, com os operadores `+`, `-`, `*`, `/`, `&`,
+`|`, `<`, `>` e `=`. O XML segue a estrutura da gramática Jack; não aplica
+precedência aritmética adicional. Parênteses criam uma expressão aninhada.
+
+A saída sintática tem raiz `<class>`, tags para as regras gramaticais e tokens
+como folhas. Listas vazias também têm tags de abertura e fechamento. O sufixo
+`P.xml` é a convenção deste projeto: no pacote oficial, os XMLs sintáticos usam
+apenas `.xml`. Essa diferença de nome não altera a árvore.
+
+Erros sintáticos interrompem a análise na primeira falha, com posição, token
+encontrado e construção esperada. Esta etapa verifica a gramática; não faz análise
+semântica (como declaração de variáveis ou compatibilidade de tipos), nem gera VM.
 
 ## Estratégia de testes: XML e JUnit 5
 
@@ -101,16 +127,28 @@ Execute:
 mvn test
 ```
 
-Na entrega léxica inicial foram executados **46 casos**, resumidos abaixo.
-A suíte foi ampliada com testes do parser e da integração sintática da CLI;
-consulte o total atualizado no resultado de `mvn test`.
+A suíte atual contém **306 casos**, todos aprovados na validação desta etapa.
+Os totais incluem as execuções dos testes parametrizados.
 
 | Classe | Casos | Cobertura |
 |---|---:|---|
-| JackTokenizerTest | 34 | Todas as palavras reservadas e símbolos; identificadores; limites; strings; ruído; linhas; erros |
+| JackTokenizerTest | 35 | Palavras reservadas, símbolos, posições, constantes, comentários e erros léxicos |
 | TokenXmlWriterTest | 4 | Categorias, tags, espaços, escapes e ausência de EOF |
-| JackAnalyzerTest | 5 | Arquivo UTF-8, pasta, saída, erros e proteção das referências |
-| OfficialTokensTest | 3 | XML integral de Main, Square e SquareGame |
+| SyntaxXmlWriterTest | 8 | Tags sintáticas, indentação, tokens e escapes |
+| JackParserTest | 35 | Infraestrutura, classes, declarações, subrotinas, parâmetros, let e if |
+| JackParserWhileTest | 10 | Laços, aninhamento e erros |
+| JackParserDoTest | 19 | Comando do e chamadas inválidas |
+| JackParserReturnTest | 13 | Retorno vazio, com expressão e erros |
+| JackParserExpressionTest | 34 | Expressões e operadores |
+| JackParserConstantTest | 30 | Constantes e escape XML |
+| JackParserComplexTermTest | 29 | Parênteses, unários e arrays |
+| JackParserCallTest | 44 | Chamadas e listas de argumentos |
+| JackAnalyzerTest | 5 | Entrada, saída e erros da CLI léxica |
+| JackAnalyzerSyntaxTest | 10 | Integração do parser à CLI |
+| JackAnalyzerIntegrationTest | 21 | Integração, erros sintáticos e proteção das saídas |
+| OfficialTokensTest | 3 | XML de tokens integral dos três fontes oficiais |
+| OfficialSyntaxTest | 6 | XML sintático integral dos três fontes, pelo parser e pela CLI |
+| **Total** | **306** | |
 
 O teste oficial lê os três fontes em `src/test/resources/nand2tetris/Square/`
 e compara o resultado com os respectivos `*T.xml` extraídos do pacote oficial.
@@ -146,6 +184,9 @@ jackcompiler/
 │   ├── Token.java
 │   ├── JackTokenizer.java
 │   ├── TokenXmlWriter.java
+│   ├── JackParser.java
+│   ├── JackSyntaxException.java
+│   ├── SyntaxXmlWriter.java
 │   └── JackAnalyzer.java
 ├── src/test/java/br/edu/ufma/jackcompiler/
 ├── src/test/resources/nand2tetris/
@@ -165,14 +206,17 @@ a árvore sintática. `TokenXmlWriter` serializa tokens para validação;
 
 - [Projeto 10: padrão de tokens e validação](https://www.nand2tetris.org/project10).
 - [Pacote oficial de testes](https://www.nand2tetris.org/software).
-- Enunciado da Entrega Parcial 1 da disciplina.
+- Atividade prática da disciplina de Compiladores: analisador sintático da linguagem Jack.
 
 Os fontes e XMLs de teste oficiais são materiais de Nisan e Schocken, com os
 avisos de autoria preservados. A implementação Java é separada desses materiais.
 
-Antes de entregar, preencha as matrículas, execute `mvn clean verify`, revise as
-alterações e registre cada etapa com uma mensagem significativa. Confira pelo
-menos 10 commits com `git log --oneline`. Envie pelo VS Code para o GitHub.
-Apenas um membro envia o ZIP no SIGAA e insere o link do repositório nos comentários.
-Use o ZIP do GitHub após o envio, ou inclua `.git` no ZIP local para preservar
-histórico. Não inclua `target/` nem arquivos pessoais do editor.
+Antes de entregar, execute `mvn clean verify` e `sh scripts/validate-official.sh`,
+revise as alterações e registre cada etapa com uma mensagem significativa.
+No controle de código-fonte do VS Code, faça o commit e envie para o GitHub;
+confira se a versão publicada contém os arquivos e o histórico esperados.
+
+Para preparar o ZIP, use a versão publicada no GitHub ou um arquivo local dos
+fontes. O ZIP baixado do GitHub não contém o histórico `.git`; o histórico fica
+acessível pelo link do repositório. Não inclua `target/` nem arquivos pessoais
+do editor. Confira as exigências do enunciado para o envio no SIGAA.
