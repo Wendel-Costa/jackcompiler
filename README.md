@@ -2,7 +2,7 @@
 
 Projeto acadêmico em **Java 17**, baseado na linguagem Jack do nand2tetris.
 Implementa o analisador léxico e o parser com geração de XML sintático.
-A validação contra os XMLs sintáticos oficiais e a geração de código VM ainda estão pendentes.
+Os XMLs sintáticos de Main, Square e SquareGame foram validados contra as referências oficiais. A geração de código VM ainda está pendente.
 
 ## Dupla
 
@@ -121,7 +121,13 @@ Normaliza **somente finais de linha** (CRLF/CR para LF); não remove espaços ne
 altera conteúdo de strings. Origem, autoria e SHA-256 estão em
 [ORIGEM.md](src/test/resources/nand2tetris/ORIGEM.md).
 
-Para gerar XMLs e repetir a comparação via `diff`:
+`OfficialSyntaxTest` acrescenta seis casos: compara os três programas com os
+XMLs sintáticos oficiais tanto pelo parser quanto pela CLI. A comparação integral
+normaliza apenas finais de linha e indentação antes das tags, preservando o
+conteúdo dos tokens. As referências `*P.xml` foram extraídas do pacote oficial;
+a origem e os hashes também estão em `ORIGEM.md`.
+
+Para gerar XMLs e repetir as comparações de tokens e árvores sintáticas via `diff`:
 
 ```sh
 sh scripts/validate-official.sh

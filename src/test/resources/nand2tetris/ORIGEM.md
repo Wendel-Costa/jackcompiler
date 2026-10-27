@@ -1,6 +1,6 @@
 # Origem dos arquivos de teste
 
-Os seis arquivos em `Square/` foram extraídos sem alteração de
+Os arquivos em `Square/` foram extraídos sem alteração de conteúdo de
 `nand2tetris/projects/10/Square/` do pacote oficial do nand2tetris.
 São entradas e resultados esperados de teste; não são implementações do compilador.
 
@@ -26,5 +26,27 @@ como referências de validação da atividade, conforme solicitado no enunciado.
 | SquareT.xml | 1e793360c645d1a83f962571b9421babfec61aafe621278a7f13c542fa96617e |
 | SquareGameT.xml | 561d4fa65b78cfb474173613fa410add4c1d6c16d2dc13075ae5aa668cb53228 |
 
-As referências usam CRLF. O teste normaliza apenas os finais de linha para LF;
+As referências usam CRLF. O teste de tokens normaliza apenas os finais de linha para LF;
 não remove espaços, não reordena tokens e não gera o esperado com nosso scanner.
+
+## Referências sintáticas adicionadas em 27/10/2026
+
+O ZIP foi baixado novamente do endereço acima e apresentou o mesmo SHA-256.
+Os três fontes `.jack` do pacote foram comparados byte a byte com os já presentes
+no repositório: são idênticos. Os resultados esperados abaixo foram extraídos do
+diretório `nand2tetris/projects/10/Square/`, sem executar nosso parser para criá-los.
+
+Somente os nomes foram adaptados de `Nome.xml` para `NomeP.xml`, conforme a convenção
+da atividade e da CLI. Os bytes, inclusive CRLF, foram preservados.
+
+| Arquivo no pacote | Arquivo no repositório | SHA-256 |
+|---|---|---|
+| Main.xml | MainP.xml | 43ff155d8f4190b84fa3a6d11ce96b470ac83045de2a8524fbaa929ed8c84200 |
+| Square.xml | SquareP.xml | 380b1cb0e36ad461b555ba2b629b468555e81876762dc9c3860a04888f17252d |
+| SquareGame.xml | SquareGameP.xml | 7a6b158d10e8bd70241469c4ecb104ae9c66d96cf2a0545965cb3fe91bda722d |
+
+`OfficialSyntaxTest` compara cada referência com a saída do parser e com a saída
+em arquivo da CLI. A comparação integral normaliza finais de linha e indentação
+antes das tags. Preserva a sequência e hierarquia das tags e todo o conteúdo dos
+tokens, incluindo espaços internos de strings. O script `validate-official.sh`
+também compara os três XMLs sintáticos, além dos três XMLs de tokens.
