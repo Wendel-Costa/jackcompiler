@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
@@ -72,7 +73,8 @@ public final class JackAnalyzer {
     }
 
     private static void requireNewOutput(Path destination) throws IOException {
-        if (Files.exists(destination)) {
+        // Um link com destino ausente também ocupa o nome de saída.
+        if (Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
             throw new IOException("A saída já existe: " + destination
                     + ". Use outro diretório ou remova a saída anterior.");
         }

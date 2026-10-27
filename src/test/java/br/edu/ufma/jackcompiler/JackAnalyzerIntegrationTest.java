@@ -2,6 +2,7 @@ package br.edu.ufma.jackcompiler;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,6 +21,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class JackAnalyzerIntegrationTest {
 
@@ -188,6 +190,30 @@ class JackAnalyzerIntegrationTest {
         assertEquals("preservar", Files.readString(output));
         assertTrue(errors.toString(StandardCharsets.UTF_8).contains("Erro:"));
         assertEquals("", messages.toString(StandardCharsets.UTF_8));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"T", "P"})
+    void shouldRejectDanglingOutputLinksBeforeWritingEitherXml(String suffix) throws Exception {
+        Path source = temporary.resolve("Main.jack");
+        Files.writeString(source, "class Main {}");
+        Path output = Files.createDirectory(temporary.resolve("out"));
+        Path missingTarget = temporary.resolve("missing.xml");
+        Path destination = output.resolve("Main" + suffix + ".xml");
+        try {
+            Files.createSymbolicLink(destination, missingTarget);
+        } catch (UnsupportedOperationException | IOException | SecurityException exception) {
+            assumeTrue(false, "Ambiente sem suporte/permissão para links simbólicos: " + exception);
+        }
+
+        assertEquals(1, run(source, output));
+        assertTrue(errors.toString(StandardCharsets.UTF_8).contains("A saída já existe: " + destination));
+        assertEquals("", messages.toString(StandardCharsets.UTF_8));
+        assertEquals(missingTarget, Files.readSymbolicLink(destination));
+        assertFalse(Files.exists(missingTarget));
+        try (var files = Files.list(output)) {
+            assertEquals(List.of(destination), files.toList());
+        }
     }
 
     private void assertNoOutput(Path directory, String name) {

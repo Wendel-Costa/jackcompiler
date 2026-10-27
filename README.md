@@ -54,7 +54,8 @@ java -cp target/classes br.edu.ufma.jackcompiler.JackAnalyzer --tokens src/test/
 Leitura e escrita usam UTF-8. A busca na pasta
 não é recursiva e ignora outras extensões. Caminhos com espaços devem estar entre aspas.
 
-A CLI recusa sobrescrever XMLs existentes para proteger as referências. Para
+A CLI recusa sobrescrever XMLs existentes para proteger as referências, inclusive
+links simbólicos cujo destino não existe. Para
 repetir, escolha outra pasta de saída ou remova as saídas anteriores após revisão.
 Sucesso retorna código 0; entrada inválida, erro léxico, sintático ou de arquivo retorna 1.
 Erros léxicos informam arquivo e linha em stderr; erros sintáticos incluem também a coluna.
@@ -127,8 +128,9 @@ Execute:
 mvn test
 ```
 
-A suíte atual contém **306 casos**, todos aprovados na validação desta etapa.
+A suíte atual contém **308 casos**, todos aprovados na validação desta etapa.
 Os totais incluem as execuções dos testes parametrizados.
+Os dois casos com links simbólicos são ignorados se o ambiente não permitir sua criação.
 
 | Classe | Casos | Cobertura |
 |---|---:|---|
@@ -145,10 +147,10 @@ Os totais incluem as execuções dos testes parametrizados.
 | JackParserCallTest | 44 | Chamadas e listas de argumentos |
 | JackAnalyzerTest | 5 | Entrada, saída e erros da CLI léxica |
 | JackAnalyzerSyntaxTest | 10 | Integração do parser à CLI |
-| JackAnalyzerIntegrationTest | 21 | Integração, erros sintáticos e proteção das saídas |
+| JackAnalyzerIntegrationTest | 23 | Integração, erros sintáticos e proteção das saídas, inclusive links simbólicos |
 | OfficialTokensTest | 3 | XML de tokens integral dos três fontes oficiais |
 | OfficialSyntaxTest | 6 | XML sintático integral dos três fontes, pelo parser e pela CLI |
-| **Total** | **306** | |
+| **Total** | **308** | |
 
 O teste oficial lê os três fontes em `src/test/resources/nand2tetris/Square/`
 e compara o resultado com os respectivos `*T.xml` extraídos do pacote oficial.
