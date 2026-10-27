@@ -204,6 +204,16 @@ O tokenizer recebe uma String e permanece independente de arquivos e XML.
 a árvore sintática. `TokenXmlWriter` serializa tokens para validação;
 `JackAnalyzer` integra os componentes e cuida da CLI e dos arquivos.
 
+## Relato dos desafios da unidade
+
+Durante o trabalho, uma das dificuldades foi entender como integrar o scanner ao parser e gerar um XML com a estrutura esperada. Inicialmente, nossa atenção estava no reconhecimento dos comandos, mas percebemos que também precisávamos cuidar da organização das tags, das mensagens de erro e da gravação dos arquivos.
+
+Um problema menos evidente apareceu na revisão final: usávamos `Files.exists()` para impedir a sobrescrita das saídas, mas essa verificação seguia links simbólicos. Quando o destino do link não existia, ela indicava que o caminho estava livre. Se isso acontecesse no caminho do XML sintático, o programa podia gravar o XML de tokens e falhar na segunda gravação, deixando uma saída incompleta.
+
+Para reproduzir o problema, criamos o teste parametrizado `shouldRejectDanglingOutputLinksBeforeWritingEitherXml`, em `JackAnalyzerIntegrationTest`. Ele verifica duas situações: um link com destino inexistente ocupando o nome `MainT.xml` ou `MainP.xml`. O teste exige que o programa informe o conflito, preserve o link e não grave nenhum dos XMLs. Corrigimos a verificação usando `Files.exists(destination, LinkOption.NOFOLLOW_LINKS)`, que considera a existência do próprio link. Depois da alteração, os dois casos passaram, assim como os demais testes, totalizando 308 casos aprovados.
+
+Para manter a continuidade, dividimos o desenvolvimento em duas partes. O Wendel começou a estrutura do parser e as primeiras regras, e a Yasmin continuou com as regras restantes, a integração e a validação dos XMLs. Nesse revezamento, registramos nos commits o que já funcionava e o que ainda faltava, permitindo que um continuasse o trabalho do outro. Como iniciantes na disciplina, desenvolver em etapas nos ajudou a compreender melhor o projeto e a perceber a importância de testar também situações fora do funcionamento mais comum.
+
 ## Referências e entrega
 
 - [Projeto 10: padrão de tokens e validação](https://www.nand2tetris.org/project10).

@@ -390,7 +390,7 @@ public final class JackParser {
         parseTerm();
 
         while (isOperator(currentToken.getType())) {
-            consumeAndWrite(currentToken.getType());
+            parseOp();
 
             parseTerm();
         }
@@ -410,6 +410,31 @@ public final class JackParser {
                 || type == TokenType.EQ;
     }
 
+    // Estas regras emitem apenas o token, conforme o XML oficial, sem tags extras.
+    private void parseOp() {
+        if (!isOperator(currentToken.getType())) {
+            throw new JackSyntaxException(currentToken, "operador binário");
+        }
+        consumeAndWrite(currentToken.getType());
+    }
+
+    private void parseUnaryOp() {
+        TokenType type = currentToken.getType();
+        if (type != TokenType.MINUS && type != TokenType.NOT) {
+            throw new JackSyntaxException(currentToken, "operador unário - ou ~");
+        }
+        consumeAndWrite(type);
+    }
+
+    private void parseKeywordConstant() {
+        TokenType type = currentToken.getType();
+        if (type != TokenType.TRUE && type != TokenType.FALSE
+                && type != TokenType.NULL && type != TokenType.THIS) {
+            throw new JackSyntaxException(currentToken, "constante true, false, null ou this");
+        }
+        consumeAndWrite(type);
+    }
+
     private void parseTerm() {
         xmlWriter.openTag("term");
 
@@ -418,11 +443,14 @@ public final class JackParser {
         switch (type) {
             case NUMBER:
             case STRING:
+                consumeAndWrite(type);
+                break;
+
             case TRUE:
             case FALSE:
             case NULL:
             case THIS:
-                consumeAndWrite(type);
+                parseKeywordConstant();
                 break;
 
             case LPAREN:
@@ -435,7 +463,7 @@ public final class JackParser {
 
             case MINUS:
             case NOT:
-                consumeAndWrite(type);
+                parseUnaryOp();
 
                 parseTerm();
                 break;
