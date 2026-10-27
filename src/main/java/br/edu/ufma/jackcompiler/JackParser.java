@@ -244,7 +244,8 @@ public final class JackParser {
         xmlWriter.openTag("statements");
 
         while (currentToken.getType() == TokenType.LET
-                || currentToken.getType() == TokenType.IF) {
+                || currentToken.getType() == TokenType.IF
+                || currentToken.getType() == TokenType.WHILE) {
 
             switch (currentToken.getType()) {
                 case LET:
@@ -253,6 +254,10 @@ public final class JackParser {
 
                 case IF:
                     parseIfStatement();
+                    break;
+
+                case WHILE:
+                    parseWhileStatement();
                     break;
 
                 default:
@@ -317,6 +322,25 @@ public final class JackParser {
         }
 
         xmlWriter.closeTag("ifStatement");
+    }
+
+    // whileStatement: 'while' '(' expression ')' '{' statements '}'
+    private void parseWhileStatement() {
+        xmlWriter.openTag("whileStatement");
+
+        consumeAndWrite(TokenType.WHILE);
+        consumeAndWrite(TokenType.LPAREN);
+
+        parseExpression();
+
+        consumeAndWrite(TokenType.RPAREN);
+        consumeAndWrite(TokenType.LBRACE);
+
+        parseStatements();
+
+        consumeAndWrite(TokenType.RBRACE);
+
+        xmlWriter.closeTag("whileStatement");
     }
 
     private void parseExpression() {
