@@ -5,10 +5,11 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.stream.Stream;
 
-/** Ponto de entrada da entrega léxica; futuramente integrará o parser. */
+/** CLI para gerar XML de tokens e da árvore sintática Jack. */
 public final class JackAnalyzer {
 
     private JackAnalyzer() {
@@ -22,38 +23,58 @@ public final class JackAnalyzer {
     }
 
     static int run(String[] args, PrintStream out, PrintStream err) {
-        if (args.length < 1 || args.length > 2) {
-            err.println("Uso: JackAnalyzer <arquivo.jack|diretório> [diretório de saída]");
+        boolean tokensOnly = args.length > 0 && args[0].equals("--tokens");
+        int offset = tokensOnly ? 1 : 0;
+        if (args.length - offset < 1 || args.length - offset > 2) {
+            err.println("Uso: JackAnalyzer [--tokens] <arquivo.jack|diretório> [diretório de saída]");
             return 1;
         }
 
         try {
-            Path input = Path.of(args[0]);
-            Path output = args.length == 2 ? Path.of(args[1]) : Path.of("target", "tokens");
+            Path input = Path.of(args[offset]);
+            Path output = args.length - offset == 2 ? Path.of(args[offset + 1])
+                    : Path.of("target", tokensOnly ? "tokens" : "xml");
             List<Path> sources = sourceFiles(input);
             Files.createDirectories(output);
 
             for (Path source : sources) {
-                String xml;
+                String tokenXml;
+                String syntaxXml = null;
                 try {
-                    xml = TokenXmlWriter.toXml(new JackTokenizer(
-                            Files.readString(source, StandardCharsets.UTF_8)));
-                } catch (IllegalArgumentException exception) {
+                    String content = Files.readString(source, StandardCharsets.UTF_8);
+                    tokenXml = TokenXmlWriter.toXml(new JackTokenizer(content));
+                    if (!tokensOnly) {
+                        syntaxXml = new JackParser(new JackTokenizer(content)).parseClass();
+                    }
+                } catch (IllegalArgumentException | JackSyntaxException exception) {
                     throw new IllegalArgumentException(source + ": " + exception.getMessage(), exception);
                 }
                 String name = source.getFileName().toString();
-                Path destination = output.resolve(name.substring(0, name.length() - 5) + "T.xml");
-                if (Files.exists(destination)) {
-                    throw new IOException("A saída já existe: " + destination
-                            + ". Use outro diretório ou remova a saída anterior.");
+                String baseName = name.substring(0, name.length() - 5);
+                Path tokenDestination = output.resolve(baseName + "T.xml");
+                Path syntaxDestination = output.resolve(baseName + "P.xml");
+                requireNewOutput(tokenDestination);
+                if (!tokensOnly) {
+                    requireNewOutput(syntaxDestination);
                 }
-                Files.writeString(destination, xml, StandardCharsets.UTF_8);
-                out.println("Gerado: " + destination);
+                Files.writeString(tokenDestination, tokenXml, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+                out.println("Gerado: " + tokenDestination);
+                if (!tokensOnly) {
+                    Files.writeString(syntaxDestination, syntaxXml, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+                    out.println("Gerado: " + syntaxDestination);
+                }
             }
             return 0;
         } catch (IOException | IllegalArgumentException exception) {
             err.println("Erro: " + exception.getMessage());
             return 1;
+        }
+    }
+
+    private static void requireNewOutput(Path destination) throws IOException {
+        if (Files.exists(destination)) {
+            throw new IOException("A saída já existe: " + destination
+                    + ". Use outro diretório ou remova a saída anterior.");
         }
     }
 

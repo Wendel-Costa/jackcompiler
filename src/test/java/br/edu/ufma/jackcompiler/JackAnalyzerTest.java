@@ -20,7 +20,8 @@ class JackAnalyzerTest {
         Path source = temporary.resolve("Main.jack");
         Files.writeString(source, "\"Olá\"");
         Path output = temporary.resolve("saída com espaços");
-        assertEquals(0, run(source, output));
+        assertEquals(0, JackAnalyzer.run(new String[]{"--tokens", source.toString(), output.toString()},
+                new PrintStream(new ByteArrayOutputStream()), new PrintStream(new ByteArrayOutputStream())));
         assertEquals("<tokens>\n<stringConstant> Olá </stringConstant>\n</tokens>\n",
                 Files.readString(output.resolve("MainT.xml")));
         assertEquals("\"Olá\"", Files.readString(source));

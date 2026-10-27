@@ -1,8 +1,8 @@
 # JackCompiler
 
 Projeto acadêmico em **Java 17**, baseado na linguagem Jack do nand2tetris.
-Esta entrega implementa o analisador léxico. Parser, Compilation Engine e
-código VM serão desenvolvidos nas próximas etapas.
+Implementa o analisador léxico e o parser com geração de XML sintático.
+A validação contra os XMLs sintáticos oficiais e a geração de código VM ainda estão pendentes.
 
 ## Dupla
 
@@ -42,15 +42,26 @@ java -cp target/classes br.edu.ufma.jackcompiler.JackAnalyzer src/test/resources
 java -cp target/classes br.edu.ufma.jackcompiler.JackAnalyzer src/test/resources/nand2tetris/Square target/exemplo-square
 ```
 
-O segundo argumento é o diretório de saída; se omitido, usa `target/tokens`.
-`Main.jack` produz `MainT.xml`. Leitura e escrita usam UTF-8. A busca na pasta
+O segundo argumento é o diretório de saída; se omitido, usa `target/xml`.
+`Main.jack` produz `MainT.xml` (tokens) e `MainP.xml` (árvore sintática).
+Para executar apenas o scanner, inclusive sobre trechos que não formam uma classe,
+adicione `--tokens` antes da entrada. Nesse modo, a saída padrão é `target/tokens`:
+
+```sh
+java -cp target/classes br.edu.ufma.jackcompiler.JackAnalyzer --tokens src/test/resources/nand2tetris/Square/Main.jack target/exemplo-tokens
+```
+
+Leitura e escrita usam UTF-8. A busca na pasta
 não é recursiva e ignora outras extensões. Caminhos com espaços devem estar entre aspas.
 
 A CLI recusa sobrescrever XMLs existentes para proteger as referências. Para
 repetir, escolha outra pasta de saída ou remova as saídas anteriores após revisão.
-Sucesso retorna código 0; entrada inválida, erro léxico ou erro de arquivo retorna 1.
-Erros léxicos informam arquivo e linha em stderr. Em uma pasta, arquivos anteriores
-à falha podem ter sido gerados; o arquivo com erro léxico não produz XML parcial.
+Sucesso retorna código 0; entrada inválida, erro léxico, sintático ou de arquivo retorna 1.
+Erros léxicos informam arquivo e linha em stderr; erros sintáticos incluem também a coluna.
+Ambos os XMLs são calculados antes de gravar as saídas de cada fonte: um erro léxico
+ou sintático não produz arquivos desse fonte. Em uma pasta, arquivos anteriores à
+falha podem ter sido gerados. A escrita dos dois arquivos não é uma transação:
+uma falha de disco durante a gravação pode deixar uma das saídas.
 
 ## Reconhecimento e ruído
 
@@ -90,7 +101,9 @@ Execute:
 mvn test
 ```
 
-São **46 casos executados**:
+Na entrega léxica inicial foram executados **46 casos**, resumidos abaixo.
+A suíte foi ampliada com testes do parser e da integração sintática da CLI;
+consulte o total atualizado no resultado de `mvn test`.
 
 | Classe | Casos | Cobertura |
 |---|---:|---|
@@ -138,9 +151,9 @@ jackcompiler/
 ```
 
 O tokenizer recebe uma String e permanece independente de arquivos e XML.
-O parser poderá consumir `nextToken()` diretamente. `TokenXmlWriter` serializa
-para validação; `JackAnalyzer` cuida da CLI e dos arquivos. Os tipos detalhados
-em `TokenType` podem ser reutilizados pelo analisador sintático.
+`JackParser` consome `nextToken()` diretamente e usa `SyntaxXmlWriter` para gerar
+a árvore sintática. `TokenXmlWriter` serializa tokens para validação;
+`JackAnalyzer` integra os componentes e cuida da CLI e dos arquivos.
 
 ## Referências e entrega
 
