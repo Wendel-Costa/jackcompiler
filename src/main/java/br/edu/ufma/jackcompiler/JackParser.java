@@ -382,6 +382,8 @@ public final class JackParser {
         xmlWriter.closeTag("returnStatement");
     }
 
+    // expression: term (op term)*. O XML preserva a ordem dos operadores;
+    // expressões aninhadas por parênteses são analisadas dentro de parseTerm().
     private void parseExpression() {
         xmlWriter.openTag("expression");
 
