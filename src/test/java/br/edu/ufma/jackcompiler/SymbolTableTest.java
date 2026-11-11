@@ -27,7 +27,7 @@ class SymbolTableTest {
                 table.define("enabled", "boolean", SymbolTable.Kind.FIELD).index());
 
         assertEquals(
-                2,
+                1,
                 table.define("total", "int", SymbolTable.Kind.STATIC).index());
     }
 

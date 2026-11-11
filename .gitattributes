@@ -1,1 +1,3 @@
 src/test/resources/nand2tetris/Square/* -text whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof
+
+src/test/resources/nand2tetris/Project11/**/*.jack -text whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof
