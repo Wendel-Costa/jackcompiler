@@ -1,234 +1,311 @@
-# JackCompiler
+# JackCompiler — Analisador e gerador de código VM
 
-Projeto acadêmico em **Java 17**, baseado na linguagem Jack do nand2tetris.
-Implementa o analisador léxico e o parser com geração de XML sintático.
-Os XMLs sintáticos de Main, Square e SquareGame foram validados contra as referências oficiais. A geração de código VM ainda está pendente.
+Projeto acadêmico desenvolvido em **Java 17 ou superior** para a linguagem Jack do curso [Nand2Tetris](https://www.nand2tetris.org/). O repositório reúne o analisador léxico, o analisador sintático com geração de XML e o motor de compilação que traduz programas Jack para código da máquina virtual (`.vm`).
 
-## Dupla
+A implementação desta entrega corresponde ao **Project 11 — Code Generation**: cada classe Jack é compilada para um arquivo VM, que pode ser executado no VM Emulator do Nand2Tetris.
 
-| Nome | Matrícula |
+## Integrantes
+
+| Integrante | Matrícula |
 |---|---|
 | Wendel Davi Reis Costa | 2023035735 |
 | Yasmin Mendes Ferreira | 2022003156 |
 
-## Compilação
+## Funcionalidades
 
-Requisitos: JDK 17 ou superior e Maven 3.9 ou superior. Confira `java -version`,
-`javac -version` e `mvn -version`. A primeira execução precisa de internet para
-baixar as dependências declaradas no `pom.xml`, incluindo JUnit 5.
+- Análise léxica de palavras reservadas, símbolos, identificadores, constantes inteiras e strings.
+- Ignora espaços, quebras de linha e comentários de linha e de bloco.
+- Análise sintática por descida recursiva, com geração de XML de tokens e de estrutura sintática.
+- Geração de código VM para declarações, expressões, comandos, subrotinas, objetos, arrays e strings.
+- Tabela de símbolos com escopo de classe e de subrotina.
+- Compilação de um arquivo `.jack` ou de todos os arquivos `.jack` diretamente presentes em um diretório.
+- Testes unitários, testes de regressão e testes de integração com os seis programas do Project 11.
 
-Abra a pasta raiz do repositório (a que contém `pom.xml`) no VS Code e execute no terminal integrado:
+## Requisitos de ambiente
 
-```sh
+- **JDK 17 ou superior** (é necessário ter `java` e `javac`).
+- **Maven 3.9 ou superior**.
+- Git, caso o projeto seja obtido por clone.
+- Internet na primeira execução do Maven para baixar os plugins e a dependência JUnit 5 declarados no `pom.xml`.
+
+O projeto usa `maven.compiler.release=17`. O JAR não é configurado como executável com todas as dependências; por isso, os exemplos de execução abaixo usam diretamente `target/classes` e o nome completo da classe principal.
+
+## Obter o repositório
+
+Se ainda não tiver o repositório na máquina:
+
+```bash
+git clone https://github.com/Wendel-Costa/jackcompiler.git
+cd jackcompiler
+```
+
+Se já tiver o projeto, entre na pasta que contém o arquivo `pom.xml`:
+
+```bash
+cd /caminho/para/jackcompiler
+```
+
+Todos os comandos Maven e Java deste README devem ser executados a partir dessa pasta raiz.
+
+## Compilar e executar os testes
+
+Para limpar os arquivos gerados anteriormente, compilar o código e executar a suíte de testes:
+
+```bash
 mvn clean verify
 ```
 
-Isso compila, executa os testes e gera o JAR em `target/`.
-No macOS com Java 17 instalado pelo Homebrew, se Java não estiver no PATH:
+O Maven compila as classes principais e de teste, executa os testes JUnit 5 e percorre as etapas de verificação do ciclo de build. As classes compiladas ficam em:
 
-```sh
-export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
-export PATH="$JAVA_HOME/bin:$PATH"
+```text
+target/classes/
+target/test-classes/
 ```
 
-Maven também precisa estar instalado e disponível no PATH.
+Para executar somente os testes, sem limpar o diretório `target/`:
 
-## Execução
-
-Depois de compilar, processe um arquivo ou todos os arquivos `.jack` de uma pasta:
-
-```sh
-java -cp target/classes br.edu.ufma.jackcompiler.JackAnalyzer src/test/resources/nand2tetris/Square/Main.jack target/exemplo-main
-java -cp target/classes br.edu.ufma.jackcompiler.JackAnalyzer src/test/resources/nand2tetris/Square target/exemplo-square
-```
-
-O segundo argumento é o diretório de saída; se omitido, usa `target/xml`.
-`Main.jack` produz `MainT.xml` (tokens) e `MainP.xml` (árvore sintática).
-Para executar apenas o scanner, inclusive sobre trechos que não formam uma classe,
-adicione `--tokens` antes da entrada. Nesse modo, a saída padrão é `target/tokens`:
-
-```sh
-java -cp target/classes br.edu.ufma.jackcompiler.JackAnalyzer --tokens src/test/resources/nand2tetris/Square/Main.jack target/exemplo-tokens
-```
-
-Leitura e escrita usam UTF-8. A busca na pasta
-não é recursiva e ignora outras extensões. Caminhos com espaços devem estar entre aspas.
-
-A CLI recusa sobrescrever XMLs existentes para proteger as referências, inclusive
-links simbólicos cujo destino não existe. Para
-repetir, escolha outra pasta de saída ou remova as saídas anteriores após revisão.
-Sucesso retorna código 0; entrada inválida, erro léxico, sintático ou de arquivo retorna 1.
-Erros léxicos informam arquivo e linha em stderr; erros sintáticos incluem também a coluna.
-Ambos os XMLs são calculados antes de gravar as saídas de cada fonte: um erro léxico
-ou sintático não produz arquivos desse fonte. Em uma pasta, arquivos anteriores à
-falha podem ter sido gerados. A escrita dos dois arquivos não é uma transação:
-uma falha de disco durante a gravação pode deixar uma das saídas.
-
-## Reconhecimento e ruído
-
-`nextToken()` retorna tipo, lexema, linha e coluna. Reconhece 21 palavras reservadas,
-19 símbolos (incluindo colchetes), inteiros de 0 a 32767, strings e identificadores.
-Identificadores começam com letra ASCII ou `_`, e continuam com letras, números
-ou `_`. Strings preservam Unicode e espaços, removem as aspas delimitadoras,
-não interpretam escapes e não aceitam quebras de linha. `-12` gera dois tokens.
-
-Espaços, tabs, quebras de linha, `//`, `/* ... */` e `/** ... */` são ignorados.
-Comentários de bloco não são aninhados: o primeiro `*/` fecha o comentário.
-`/` permanece divisão quando não inicia comentário. Marcadores dentro de strings
-são preservados. LF, CRLF e CR contam como uma quebra de linha.
-Strings e comentários sem fechamento, inteiros fora da faixa e caracteres
-inesperados causam erro léxico. EOF encerra a leitura internamente.
-
-## Análise sintática
-
-O parser usa descida recursiva e consome os tokens do analisador léxico diretamente.
-`parseClass()` reconhece uma classe completa e exige EOF após a chave final.
-A cobertura inclui:
-
-- Declarações `static` e `field`, tipos primitivos e nomes de classes.
-- Subrotinas `constructor`, `function` e `method`, parâmetros e variáveis locais.
-- Comandos `let` (inclusive arrays), `if`/`else`, `while`, `do` e `return`.
-- Expressões, constantes inteiras e strings, `true`, `false`, `null` e `this`.
-- Termos entre parênteses, operadores unários `-` e `~`, acesso a arrays,
-  chamadas simples ou qualificadas e listas de argumentos vazias ou múltiplas.
-
-Expressões seguem `term (op term)*`, com os operadores `+`, `-`, `*`, `/`, `&`,
-`|`, `<`, `>` e `=`. O XML segue a estrutura da gramática Jack; não aplica
-precedência aritmética adicional. Parênteses criam uma expressão aninhada.
-
-A saída sintática tem raiz `<class>`, tags para as regras gramaticais e tokens
-como folhas. Listas vazias também têm tags de abertura e fechamento. O sufixo
-`P.xml` é a convenção deste projeto: no pacote oficial, os XMLs sintáticos usam
-apenas `.xml`. Essa diferença de nome não altera a árvore.
-
-Erros sintáticos interrompem a análise na primeira falha, com posição, token
-encontrado e construção esperada. Esta etapa verifica a gramática; não faz análise
-semântica (como declaração de variáveis ou compatibilidade de tipos), nem gera VM.
-
-## Estratégia de testes: XML e JUnit 5
-
-Optamos pelo XML oficial, complementado por testes unitários. Cada token ocupa
-uma linha com espaços internos nas tags, dentro de `<tokens>` e `</tokens>`.
-EOF é omitido. `<`, `>`, `&` e `"` são escapados como `&lt;`, `&gt;`, `&amp;`
-e `&quot;`. Exemplo:
-
-```xml
-<tokens>
-<keyword> let </keyword>
-<identifier> x </identifier>
-<symbol> = </symbol>
-<integerConstant> 7 </integerConstant>
-<symbol> ; </symbol>
-</tokens>
-```
-
-Execute:
-
-```sh
+```bash
 mvn test
 ```
 
-A suíte atual contém **308 casos**, todos aprovados na validação desta etapa.
-Os totais incluem as execuções dos testes parametrizados.
-Os dois casos com links simbólicos são ignorados se o ambiente não permitir sua criação.
+Para conferir os XMLs oficiais do Project 10 usando o script do repositório:
 
-| Classe | Casos | Cobertura |
-|---|---:|---|
-| JackTokenizerTest | 35 | Palavras reservadas, símbolos, posições, constantes, comentários e erros léxicos |
-| TokenXmlWriterTest | 4 | Categorias, tags, espaços, escapes e ausência de EOF |
-| SyntaxXmlWriterTest | 8 | Tags sintáticas, indentação, tokens e escapes |
-| JackParserTest | 35 | Infraestrutura, classes, declarações, subrotinas, parâmetros, let e if |
-| JackParserWhileTest | 10 | Laços, aninhamento e erros |
-| JackParserDoTest | 19 | Comando do e chamadas inválidas |
-| JackParserReturnTest | 13 | Retorno vazio, com expressão e erros |
-| JackParserExpressionTest | 34 | Expressões e operadores |
-| JackParserConstantTest | 30 | Constantes e escape XML |
-| JackParserComplexTermTest | 29 | Parênteses, unários e arrays |
-| JackParserCallTest | 44 | Chamadas e listas de argumentos |
-| JackAnalyzerTest | 5 | Entrada, saída e erros da CLI léxica |
-| JackAnalyzerSyntaxTest | 10 | Integração do parser à CLI |
-| JackAnalyzerIntegrationTest | 23 | Integração, erros sintáticos e proteção das saídas, inclusive links simbólicos |
-| OfficialTokensTest | 3 | XML de tokens integral dos três fontes oficiais |
-| OfficialSyntaxTest | 6 | XML sintático integral dos três fontes, pelo parser e pela CLI |
-| **Total** | **308** | |
-
-O teste oficial lê os três fontes em `src/test/resources/nand2tetris/Square/`
-e compara o resultado com os respectivos `*T.xml` extraídos do pacote oficial.
-Essas referências são independentes: não são geradas pelo nosso scanner.
-A asserção de igualdade integral detecta tokens extras, ausentes, fora de ordem,
-tipos incorretos e diferenças de lexema, tags e escapes.
-Normaliza **somente finais de linha** (CRLF/CR para LF); não remove espaços nem
-altera conteúdo de strings. Origem, autoria e SHA-256 estão em
-[ORIGEM.md](src/test/resources/nand2tetris/ORIGEM.md).
-
-`OfficialSyntaxTest` acrescenta seis casos: compara os três programas com os
-XMLs sintáticos oficiais tanto pelo parser quanto pela CLI. A comparação integral
-normaliza apenas finais de linha e indentação antes das tags, preservando o
-conteúdo dos tokens. As referências `*P.xml` foram extraídas do pacote oficial;
-a origem e os hashes também estão em `ORIGEM.md`.
-
-Para gerar XMLs e repetir as comparações de tokens e árvores sintáticas via `diff`:
-
-```sh
+```bash
 sh scripts/validate-official.sh
 ```
 
-O script requer shell POSIX e `diff` (macOS/Linux ou Git Bash), executa `mvn test`
-e cria uma pasta nova em `target/` a cada execução. Os testes Maven também
-funcionam no Windows sem depender do script.
+Esse script executa os testes Maven e utiliza `diff` para comparar as saídas XML com as referências incluídas no repositório. Ele requer um shell compatível com POSIX e o utilitário `diff`.
 
-## Organização e reutilização
+## Compilar programas Jack para VM
+
+A classe responsável pela linha de comando da geração VM é:
 
 ```text
-jackcompiler/
-├── src/main/java/br/edu/ufma/jackcompiler/
-│   ├── TokenType.java
-│   ├── Token.java
-│   ├── JackTokenizer.java
-│   ├── TokenXmlWriter.java
-│   ├── JackParser.java
-│   ├── JackSyntaxException.java
-│   ├── SyntaxXmlWriter.java
-│   └── JackAnalyzer.java
-├── src/test/java/br/edu/ufma/jackcompiler/
-├── src/test/resources/nand2tetris/
-├── scripts/validate-official.sh
-├── .gitignore
-├── .gitattributes
-├── pom.xml
-└── README.md
+br.edu.ufma.jackcompiler.JackCompiler
 ```
 
-O tokenizer recebe uma String e permanece independente de arquivos e XML.
-`JackParser` consome `nextToken()` diretamente e usa `SyntaxXmlWriter` para gerar
-a árvore sintática. `TokenXmlWriter` serializa tokens para validação;
-`JackAnalyzer` integra os componentes e cuida da CLI e dos arquivos.
+### Compilar um único arquivo
 
-## Relato dos desafios da unidade
+Formato:
 
-Durante o trabalho, uma das dificuldades foi entender como integrar o scanner ao parser e gerar um XML com a estrutura esperada. Inicialmente, nossa atenção estava no reconhecimento dos comandos, mas percebemos que também precisávamos cuidar da organização das tags, das mensagens de erro e da gravação dos arquivos.
+```bash
+java -cp target/classes br.edu.ufma.jackcompiler.JackCompiler caminho/para/Classe.jack
+```
 
-Um problema menos evidente apareceu na revisão final: usávamos `Files.exists()` para impedir a sobrescrita das saídas, mas essa verificação seguia links simbólicos. Quando o destino do link não existia, ela indicava que o caminho estava livre. Se isso acontecesse no caminho do XML sintático, o programa podia gravar o XML de tokens e falhar na segunda gravação, deixando uma saída incompleta.
+Exemplo:
 
-Para reproduzir o problema, criamos o teste parametrizado `shouldRejectDanglingOutputLinksBeforeWritingEitherXml`, em `JackAnalyzerIntegrationTest`. Ele verifica duas situações: um link com destino inexistente ocupando o nome `MainT.xml` ou `MainP.xml`. O teste exige que o programa informe o conflito, preserve o link e não grave nenhum dos XMLs. Corrigimos a verificação usando `Files.exists(destination, LinkOption.NOFOLLOW_LINKS)`, que considera a existência do próprio link. Depois da alteração, os dois casos passaram, assim como os demais testes, totalizando 308 casos aprovados.
+```bash
+java -cp target/classes br.edu.ufma.jackcompiler.JackCompiler src/test/resources/nand2tetris/Project11/Seven/Main.jack
+```
 
-Para manter a continuidade, dividimos o desenvolvimento em duas partes. O Wendel começou a estrutura do parser e as primeiras regras, e a Yasmin continuou com as regras restantes, a integração e a validação dos XMLs. Nesse revezamento, registramos nos commits o que já funcionava e o que ainda faltava, permitindo que um continuasse o trabalho do outro. Como iniciantes na disciplina, desenvolver em etapas nos ajudou a compreender melhor o projeto e a perceber a importância de testar também situações fora do funcionamento mais comum.
+A saída será criada ao lado do fonte:
 
-## Referências e entrega
+```text
+src/test/resources/nand2tetris/Project11/Seven/
+├── Main.jack
+└── Main.vm
+```
 
-- [Projeto 10: padrão de tokens e validação](https://www.nand2tetris.org/project10).
-- [Pacote oficial de testes](https://www.nand2tetris.org/software).
-- Atividade prática da disciplina de Compiladores: analisador sintático da linguagem Jack.
+**Atenção:** esse exemplo grava o arquivo `.vm` dentro da pasta de recursos de teste do repositório. Para experimentos e demonstrações, prefira copiar os fontes para uma pasta dentro de `target/`, como mostrado na seção de demonstração.
 
-Os fontes e XMLs de teste oficiais são materiais de Nisan e Schocken, com os
-avisos de autoria preservados. A implementação Java é separada desses materiais.
+### Compilar um diretório — requisito obrigatório da atividade
 
-Antes de entregar, execute `mvn clean verify` e `sh scripts/validate-official.sh`,
-revise as alterações e registre cada etapa com uma mensagem significativa.
-No controle de código-fonte do VS Code, faça o commit e envie para o GitHub;
-confira se a versão publicada contém os arquivos e o histórico esperados.
+Formato:
 
-Para preparar o ZIP, use a versão publicada no GitHub ou um arquivo local dos
-fontes. O ZIP baixado do GitHub não contém o histórico `.git`; o histórico fica
-acessível pelo link do repositório. Não inclua `target/` nem arquivos pessoais
-do editor. Confira as exigências do enunciado para o envio no SIGAA.
+```bash
+java -cp target/classes br.edu.ufma.jackcompiler.JackCompiler caminho/para/diretorio
+```
+
+Exemplo com o programa Square:
+
+```bash
+java -cp target/classes br.edu.ufma.jackcompiler.JackCompiler src/test/resources/nand2tetris/Project11/Square
+```
+
+O compilador encontra os arquivos `.jack` que estão **diretamente** dentro do diretório e gera um `.vm` para cada um, na mesma pasta:
+
+```text
+Square/
+├── Main.jack
+├── Main.vm
+├── Square.jack
+├── Square.vm
+├── SquareGame.jack
+└── SquareGame.vm
+```
+
+O comportamento da CLI é o seguinte:
+
+1. Aceita exatamente um argumento: um arquivo `.jack` ou um diretório.
+2. Ao receber um diretório, lista somente os arquivos regulares com extensão `.jack` que estão diretamente nele; não percorre subdiretórios.
+3. Ordena os fontes pelo nome antes de compilá-los.
+4. Gera um arquivo `.vm` com o mesmo nome-base de cada fonte, no próprio diretório de entrada.
+5. Ignora arquivos de outras extensões e não copia arquivos do sistema operacional Jack para a pasta.
+6. Compila os fontes encontrados antes de começar a gravar as saídas. Assim, um erro de compilação em qualquer fonte impede a gravação daquele lote e preserva arquivos VM preexistentes. Uma falha de I/O durante a gravação ainda pode deixar saídas parciais.
+7. Arquivos `.vm` regulares existentes podem ser substituídos pela nova compilação.
+
+Se a entrada for inválida, não for um arquivo `.jack` ou não contiver arquivos `.jack`, a CLI informa o erro e termina com código diferente de zero.
+
+### Compilar os seis programas do Project 11 sem alterar os fontes versionados
+
+Os fontes oficiais utilizados pelos testes estão em `src/test/resources/nand2tetris/Project11/`. Para criar cópias isoladas em `target/demo/`, execute:
+
+```bash
+mkdir -p target/demo/Square
+cp src/test/resources/nand2tetris/Project11/Square/*.jack target/demo/Square/
+
+# Confirme que a pasta contém somente os fontes Jack antes da compilação.
+ls -la target/demo/Square
+
+# Compile o diretório.
+java -cp target/classes br.edu.ufma.jackcompiler.JackCompiler target/demo/Square
+
+# Confira os arquivos gerados.
+find target/demo/Square -maxdepth 1 -type f -printf '%f\n' | sort
+```
+
+Para gerar os arquivos VM dos seis programas em cópias separadas:
+
+```bash
+for programa in Seven ConvertToBin Square Average Pong ComplexArrays; do
+    mkdir -p "target/demo/$programa"
+    cp "src/test/resources/nand2tetris/Project11/$programa/"*.jack "target/demo/$programa/"
+    java -cp target/classes br.edu.ufma.jackcompiler.JackCompiler "target/demo/$programa" || exit 1
+done
+```
+
+A quantidade de arquivos `.vm` esperada por programa é:
+
+| Programa | Fontes Jack | Arquivos VM gerados |
+|---|---:|---:|
+| Seven | 1 | `Main.vm` |
+| ConvertToBin | 1 | `Main.vm` |
+| Square | 3 | `Main.vm`, `Square.vm`, `SquareGame.vm` |
+| Average | 1 | `Main.vm` |
+| Pong | 4 | `Ball.vm`, `Bat.vm`, `Main.vm`, `PongGame.vm` |
+| ComplexArrays | 1 | `Main.vm` |
+
+## Executar os arquivos no VM Emulator
+
+A geração dos arquivos `.vm` e a execução no emulador são verificações diferentes. O `JackCompiler` produz o código; o VM Emulator executa esse código.
+
+1. Baixe o pacote de ferramentas do Nand2Tetris pela [página oficial de software](https://www.nand2tetris.org/software) ou utilize o pacote de testes disponibilizado pelo professor.
+2. Extraia o pacote em uma pasta de sua escolha.
+3. No Linux, abra um terminal na pasta `tools` do pacote e torne o script executável, se necessário:
+
+   ```bash
+   chmod +x VMEmulator.sh
+   ./VMEmulator.sh
+   ```
+
+4. No VM Emulator, use a opção de carregar um programa e selecione a **pasta** que contém os arquivos `.vm` gerados. O emulador carrega os arquivos VM da pasta; não selecione somente um arquivo individual.
+5. Inicie a execução com os controles do emulador. Quando o programa depender do teclado, habilite a entrada de teclado no próprio emulador.
+
+Não copie os arquivos VM do sistema operacional Jack (`Math.vm`, `Memory.vm`, `Screen.vm`, `Output.vm`, `Keyboard.vm`, `String.vm`, `Array.vm` e `Sys.vm`) para a pasta do programa. O VM Emulator oficial possui a implementação do sistema operacional embutida.
+
+### Comportamento esperado dos programas
+
+| Programa | O que exercita | Resultado esperado no VM Emulator |
+|---|---|---|
+| Seven | Expressões aritméticas, `do` e chamada de função do sistema operacional | Imprime o número `7` na tela. |
+| ConvertToBin | `while`, condicionais aninhadas, funções e operadores bit a bit | Antes de executar, defina um valor em `RAM[8000]`. Use `no animation`; ao terminar, confira `RAM[8001..8016]`: os valores devem representar os bits do número, usando `0` e `1`, sem `-1`. |
+| Square | Construtores, métodos, campos e chamadas entre classes | Exibe um quadrado; as setas movimentam o quadrado e `z`/`x` alteram seu tamanho. |
+| Average | Arrays, strings constantes e leitura do teclado | Solicita a quantidade de números, recebe os valores e exibe a média. |
+| Pong | Programa orientado a objetos com várias classes | O jogo funciona com bola, raquete e placar. |
+| ComplexArrays | Arrays de arrays, índices aninhados e expressões complexas | Para cada teste, o valor obtido deve coincidir com o valor esperado. |
+
+Não há arquivos `.cmp` para esses seis programas do Project 11: a verificação descrita na atividade é executar os programas no VM Emulator e conferir o comportamento.
+
+## Analisador léxico e sintático: geração de XML
+
+Além da geração VM, o repositório mantém a CLI da etapa anterior, implementada em `JackAnalyzer`. Ela gera XML de tokens e XML da estrutura sintática.
+
+Compilar um arquivo e definir a pasta de saída:
+
+```bash
+java -cp target/classes br.edu.ufma.jackcompiler.JackAnalyzer \
+  src/test/resources/nand2tetris/Square/Main.jack \
+  target/xml-main
+```
+
+Compilar todos os arquivos Jack diretamente presentes em um diretório:
+
+```bash
+java -cp target/classes br.edu.ufma.jackcompiler.JackAnalyzer \
+  src/test/resources/nand2tetris/Square \
+  target/xml-square
+```
+
+A saída contém arquivos `*T.xml` (tokens) e `*P.xml` (árvore sintática). Se o segundo argumento for omitido, a pasta padrão é `target/xml`.
+
+Para executar somente o scanner e gerar o XML de tokens:
+
+```bash
+java -cp target/classes br.edu.ufma.jackcompiler.JackAnalyzer \
+  --tokens src/test/resources/nand2tetris/Square/Main.jack \
+  target/xml-tokens
+```
+
+Nesse modo, a pasta de saída padrão é `target/tokens`. A CLI de XML não sobrescreve saídas existentes; escolha outra pasta ou remova as saídas anteriores após conferi-las.
+
+**Diferença entre as duas CLIs:** `JackAnalyzer` gera XML para análise e comparação com as referências da etapa sintática. `JackCompiler` gera instruções `.vm` para execução no VM Emulator. Para a demonstração de geração de código exigida nesta entrega, use `JackCompiler`.
+
+## Organização interna e arquitetura
+
+O código principal está no pacote `br.edu.ufma.jackcompiler`:
+
+| Classe | Responsabilidade |
+|---|---|
+| `JackTokenizer` | Percorre o código-fonte e produz tokens com tipo, lexema, linha e coluna. |
+| `JackParser` | Reconhece a gramática Jack por descida recursiva e gera a estrutura sintática utilizada pela saída XML. |
+| `TokenXmlWriter` | Serializa os tokens no formato XML. |
+| `SyntaxXmlWriter` | Serializa a árvore sintática no formato XML. |
+| `JackAnalyzer` | Integra tokenizer, parser e escritores XML na CLI da etapa sintática. |
+| `JackCompilationEngine` | Consome os tokens do `JackTokenizer`, reconhece as construções Jack e produz código VM durante a análise. |
+| `SymbolTable` | Armazena nome, tipo, categoria e índice dos identificadores nos escopos de classe e subrotina. |
+| `VMWriter` | Escreve e valida comandos da máquina virtual. |
+| `JackCompiler` | Recebe arquivo ou diretório, coordena a compilação e grava um `.vm` por fonte. |
+
+O tokenizer é compartilhado pelas duas linhas de processamento. Para a saída XML, o fluxo é `JackTokenizer → JackParser → SyntaxXmlWriter/TokenXmlWriter`. Para a saída VM, o fluxo é `JackTokenizer → JackCompilationEngine → SymbolTable + VMWriter → arquivo .vm`. O motor de compilação realiza a análise sintática necessária à tradução e emite VM durante esse processamento; ele não lê o XML produzido pelo `JackParser`.
+
+### Tabela de símbolos
+
+A tabela utiliza dois escopos:
+
+- **Escopo da classe:** símbolos `static` e `field`.
+- **Escopo da subrotina:** símbolos `arg` e `var`.
+
+O mapeamento para os segmentos VM é:
+
+| Categoria Jack | Segmento VM |
+|---|---|
+| `static` | `static` |
+| `field` | `this` |
+| parâmetro (`arg`) | `argument` |
+| variável local (`var`) | `local` |
+
+A resolução procura primeiro no escopo da subrotina e depois no escopo da classe, permitindo que uma variável local tenha precedência sobre um atributo de mesmo nome. Em métodos, o objeto corrente é registrado como argumento de índice zero; os parâmetros explícitos começam no índice um.
+
+### Geração VM
+
+A `JackCompilationEngine` e o `VMWriter` implementam, entre outros, os seguintes comportamentos:
+
+- Números inteiros: `push constant n`.
+- `false` e `null`: `push constant 0`.
+- `true`: `push constant 1` seguido de `neg` (representação VM `-1`).
+- Operações aritméticas e lógicas: `add`, `sub`, `neg`, `eq`, `gt`, `lt`, `and`, `or` e `not`.
+- Multiplicação e divisão: chamadas `Math.multiply` e `Math.divide`.
+- Comandos `let`, `if`/`else`, `while`, `do` e `return`, com rótulos de desvio exclusivos.
+- Comandos `do`: o valor retornado é descartado com `pop temp 0`.
+- Retornos `void`: empilham zero antes de `return`.
+- Construtores: alocam o número de campos com `Memory.alloc` e inicializam `pointer 0`.
+- Métodos: inicializam `pointer 0` com `argument 0`.
+- Chamadas de métodos de objetos: empilham a instância como argumento implícito e consultam o tipo do objeto na tabela de símbolos para formar o nome da chamada.
+- Arrays: calculam o endereço-base mais o índice e utilizam `pointer 1` e `that 0`.
+- Strings literais: utilizam `String.new` e chamadas sucessivas a `String.appendChar`.
+
+Os arquivos `.vm` são gravados com um comando por linha e utilizam os segmentos e comandos definidos pela máquina virtual do Nand2Tetris.
+
+## Uso de Inteligência Artificial
+
+O uso de IA generativa foi permitido como apoio pela atividade
